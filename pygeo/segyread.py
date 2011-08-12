@@ -370,7 +370,7 @@ class SEGYFile:
 
   # --------------------------------------------------------------------
 
-  def writeSEGY (self, outfilename, traces, headers=[self.thead, self.bhead, self.trhead]):
+  def writeSEGY (self, outfilename, traces, headers):
 
     [thead, bhead, trhead] = headers
 
@@ -396,7 +396,7 @@ class SEGYFile:
 
   # --------------------------------------------------------------------
 
-  def writeSU (self, outfilename, traces, trhead=self.trhead):
+  def writeSU (self, outfilename, traces, trhead):
 
     ntraces = len(traces)
 
