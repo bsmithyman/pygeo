@@ -388,7 +388,7 @@ class SEGYFile:
 
   # --------------------------------------------------------------------
 
-  def _getSamplen ():
+  def _getSamplen (self):
     if (self.bhead['format'] == 3):
       self.samplen = 2
     elif (self.bhead['format'] == 8):
