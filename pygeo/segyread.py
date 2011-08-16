@@ -40,6 +40,8 @@ class SEGYFile:
   isSU = False
   endian = 'Auto'
 
+  samplen = 4
+
   mendian = None
   usemmap = False
   thead = None
@@ -171,7 +173,7 @@ class SEGYFile:
     '''
 
     if (not self.isSU):
-      return 3200 + 400 + 240 + (ns*4 + 240)*(trace-1)
+      return 3200 + 400 + 240 + (ns*self.samplen + 240)*(trace-1)
     else:
       return 240 + (ns*4 + 240)*(trace-1)
 
@@ -223,22 +225,56 @@ class SEGYFile:
     if not np.iterable(traces):
       traces = [traces]
 
-    if ((not self.isSU) and (self.bhead['format'] != 5)):
-      if (self._isInitialized()):
-        self._maybePrint('FORMAT != 5, i.e. not IEEE 754 floating point! (will try to convert...)')
-    
-    if ((not self.isSU) and (self.bhead['format'] == 1)):
-      if (self._isInitialized()):
-        self._maybePrint('             ...converting from IBM floating point.\n')
-      for trace in traces:
-        fp.seek(self._calcOffset(trace, ns))
-        tracetemp = struct.pack('%df'%(ns,),*[self._ibm2ieee(item) for item in struct.unpack('>%dL'%(ns,),fp.read(ns*4))])
-        result.append(np.array(struct.unpack('>%df'%(ns,), tracetemp), dtype=np.float32))
-    else:
+    # Handles SU format and IEEE floating point
+    if (self.isSU or self.bhead['format'] == 5):
       for trace in traces:
         fp.seek(self._calcOffset(trace, ns))
         tracetemp = fp.read(ns*4)
         result.append(np.array(struct.unpack('>%df'%(ns,), tracetemp), dtype=np.float32))
+
+    # Handles everything else
+    else:
+      if (self._isInitialized()):
+        self._maybePrint('FORMAT == %d'%(self.bhead['format'],))
+
+      # format == 1: IBM Floating Point
+      if (self.bhead['format'] == 1):
+        if (self._isInitialized()):
+          self._maybePrint('             ...converting from IBM floating point.\n')
+        for trace in traces:
+          fp.seek(self._calcOffset(trace, ns))
+          tracetemp = struct.pack('%df'%(ns,),*[self._ibm2ieee(item) for item in struct.unpack('>%dL'%(ns,),fp.read(ns*4))])
+          result.append(np.array(struct.unpack('>%df'%(ns,), tracetemp), dtype=np.float32))
+
+      elif (self.bhead['format'] == 2):
+        if (self._isInitialized()):
+          self._maybePrint('             ...reading from 32-bit fixed point.\n')
+        for trace in traces:
+          fp.seek(self._calcOffset(trace, ns))
+          result.append(np.array(struct.unpack('>%dl'%(ns,),fp.read(ns*4)), dtype=np.int32))
+
+      elif (self.bhead['format'] == 3):
+        if (self._isInitialized()):
+          self._maybePrint('             ...reading from 16-bit fixed point.\n')
+        for trace in traces:
+          fp.seek(self._calcOffset(trace, ns))
+          result.append(np.array(struct.unpack('>%dh'%(ns,),fp.read(ns*2)), dtype=np.int32))
+
+      elif (self.bhead['format'] == 8):
+        if (self._isInitialized()):
+          self._maybePrint('             ...reading from 8-bit fixed point.\n')
+        for trace in traces:
+          fp.seek(self._calcOffset(trace, ns))
+          result.append(np.array(struct.unpack('>%db'%(ns,),fp.read(ns)), dtype=np.int32))
+
+      elif (self.bhead['format'] == 4):
+        if (self._isInitialized()):
+          self._maybePrint('             ...converting from 32-bit fixed point w/ gain.\n')
+        for trace in traces:
+          fp.seek(self._calcOffset(trace, ns))
+          tracemantissa = np.array(struct.unpack('>%s'%(ns*'xxh',), fp.read(ns)), dtype=np.float32)
+          traceexponent = np.array(struct.unpack('>%s'%(ns*'xbxx',), fp.read(ns)), dtype=np.byte)
+          result.append(tracemantissa**traceexponent)
 
     self.fClose(fp)
 
@@ -328,9 +364,19 @@ class SEGYFile:
       self.usemmap = False
       self._maybePrint('File exceeds %d MB; using conventional I/O.\n'%(self.mmaplimit / MEGABYTE,))
 
+    # Get header information from file
     self._readHeaders()
+
+    # Determine length of each sample from FORMAT code
+    self._getSamplen()
+
+    # Attempt to find shot-record boundaries
     self._calcEnsembles()
+
+    # Autodetect data endian
     self._detectEndian()
+
+    # Confirm that the SEGYFile object has been initialized
     self.initialized = True
   
   # --------------------------------------------------------------------
@@ -339,6 +385,16 @@ class SEGYFile:
     if self.usemmap:
       self._map.close()
       self._fp.close()
+
+  # --------------------------------------------------------------------
+
+  def _getSamplen ():
+    if (self.bhead['format'] == 3):
+      self.samplen = 2
+    elif (self.bhead['format'] == 8):
+      self.samplen = 1
+    else:
+      self.samplen = 4
 
   # --------------------------------------------------------------------
 
