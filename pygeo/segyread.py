@@ -279,7 +279,7 @@ class SEGYFile:
     self.fClose(fp)
 
     if (self.endian == 'Foreign'):
-      return np.array(result, dtype=np.float32).newbyteorder()
+      return np.array(result, dtype=np.float32).byteswap()
     else:
       return np.array(result, dtype=np.float32)
 
