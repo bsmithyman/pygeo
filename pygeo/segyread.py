@@ -24,7 +24,7 @@ TRHEADLIST = ['tracl','tracr','fldr','tracf','ep','cdp','cdpt','trid','nvs',
              'nofilf','nofils','lcf','hcf','lcs','hcs','year','day','hour','minute','sec',
              'timbas','trwf','grnors','grnofr','grnlof','gaps','otrav']
 
-MAJORHEADERS = [1,2,3,7,38,39]
+MAJORHEADERS = [1,2,3,4,7,38,39]
  
 
 class SEGYFile:
