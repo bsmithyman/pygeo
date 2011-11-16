@@ -160,12 +160,12 @@ cpdef wkf (im, imor):
   return imout
 
 # ----------------------------------------------------------------------
-cdef _tridiag (
-	_np.ndarray[F64_t, ndim=1] a,
-	_np.ndarray[F64_t, ndim=1] b,
-	_np.ndarray[F64_t, ndim=1] c,
-	_np.ndarray[F64_t, ndim=1] d,
-	_np.ndarray[F64_t, ndim=1] x):
+cdef _tridiag (a, b, c, d, x):
+#	_np.ndarray[F64_t, ndim=1] a,
+#	_np.ndarray[F64_t, ndim=1] b,
+#	_np.ndarray[F64_t, ndim=1] c,
+#	_np.ndarray[F64_t, ndim=1] d,
+#	_np.ndarray[F64_t, ndim=1] x):
   '''
   Implementation of TDMA (tridiagonal matrix algorithm) aka Thomas algorithm
   '''
