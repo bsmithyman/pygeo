@@ -57,10 +57,10 @@ import scipy.ndimage as _ndimage
 _gf = _ndimage.gaussian_filter
 _gf1d = _ndimage.gaussian_filter1d
 
-ctypedef F64_t F64_t
+ctypedef _np.float64_t F64_t
 
 # ----------------------------------------------------------------------
-cdef _gsi (_np.ndarray[F64_t, ndim=2] im):
+def _gsi (_np.ndarray[F64_t, ndim=2] im):
   '''
   Finds the orientation of features (implements GST dip estimation from
   van Vliet and Verbeek (1995). This determines the local dip based on the
@@ -73,7 +73,7 @@ cdef _gsi (_np.ndarray[F64_t, ndim=2] im):
   return [grads1**2, grads0*grads1, grads0**2]
 
 # ----------------------------------------------------------------------
-cpdef orientation (_np.ndarray[F64_t, ndim=2] im, gfsize=1):
+def orientation (_np.ndarray[F64_t, ndim=2] im, gfsize=1):
   '''
   orientation(im, gfsize=1) -> [[lambda1, lambda2],[ori1,ori2]]
 
@@ -100,7 +100,7 @@ cpdef orientation (_np.ndarray[F64_t, ndim=2] im, gfsize=1):
   return [lambdas, dirs]
 
 # ----------------------------------------------------------------------
-cpdef orient (im, gfsize=1):
+def orient (_np.ndarray[F64_t, ndim=2] im, gfsize=1):
   '''
   orient(im, gfsize=1) -> [ori,aniso]
 
@@ -115,7 +115,7 @@ cpdef orient (im, gfsize=1):
   return [a1,aniso]
 
 # ----------------------------------------------------------------------
-cdef _mnp (imor):
+def _mnp (_np.ndarray[F64_t, ndim=2] im, imor):
   '''
   Helper function (defines m and p terms for Hale (2007) B and B^-1
   '''
@@ -198,7 +198,7 @@ cdef _tridiag (
     X[j] = D[j] - C[j] * X[j+1]
 
 # ----------------------------------------------------------------------
-cpdef invwkf (im, imor):
+def invwkf (_np.ndarray[F64_t, ndim=2] im, _np.ndarray[F64_t, ndim=2] imor):
   '''
   invwkf(im, imor) -> 2D Array
 
@@ -306,7 +306,7 @@ cpdef rorient (im, gfsize=1):
   return [rori, aniso]
 
 # ----------------------------------------------------------------------
-cpdef diptransfer (source, dest, gfsize=1):
+def diptransfer (_np.ndarray[F64_t, ndim=2] source, _np.ndarray[F64_t, ndim=2] dest, gfsize=1):
   '''
   diptransfer(source, dest, gfsize=1) -> 2D Array
 
@@ -319,7 +319,7 @@ cpdef diptransfer (source, dest, gfsize=1):
   return newimg
 
 # ----------------------------------------------------------------------
-cpdef rdiptransfer (source, dest, gfsize=1):
+def rdiptransfer (_np.ndarray[F64_t, ndim=2] source, _np.ndarray[F64_t, ndim=2] dest, gfsize=1):
   '''
   rdiptransfer(source, dest, gfsize=1) -> 2D Array
 
