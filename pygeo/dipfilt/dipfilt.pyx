@@ -57,7 +57,7 @@ import scipy.ndimage as _ndimage
 _gf = _ndimage.gaussian_filter
 _gf1d = _ndimage.gaussian_filter1d
 
-ctypedef F64_t F64_t
+ctypedef _np.float64_t F64_t
 
 # ----------------------------------------------------------------------
 cdef _gsi (_np.ndarray[F64_t, ndim=2] im):
