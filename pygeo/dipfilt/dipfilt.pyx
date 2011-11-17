@@ -50,6 +50,7 @@ __all__ = ['orientation', 'orient', 'wkf', 'invwkf', 'rorient', 'diptransfer', '
 
 import numpy as _np
 cimport numpy as _np
+cimport cython
 
 import scipy as _sp
 import scipy.ndimage as _ndimage
@@ -60,14 +61,14 @@ _gf1d = _ndimage.gaussian_filter1d
 ctypedef _np.float64_t F64_t
 
 # ----------------------------------------------------------------------
-cdef _gsi (object im_o):
+cdef _gsi (im):
   '''
   Finds the orientation of features (implements GST dip estimation from
   van Vliet and Verbeek (1995). This determines the local dip based on the
   eigenvalue decomposition of the 2D gradient squared tensor.
   '''
 
-  cdef _np.ndarray[F64_t, ndim=2] grads0, grads1, im = im_o
+  cdef _np.ndarray[F64_t, ndim=2] grads0, grads1
 
   grads0 = _gf1d(im, 1, 1, 1)
   grads1 = _gf1d(im, 1, 0, 1)
@@ -131,6 +132,7 @@ cdef _mnp (imor):
   return [m,p]
 
 # ----------------------------------------------------------------------
+@cython.boundscheck(False)
 cpdef wkf (im, imor):
   '''
   wkf(im, imor) -> 2D Array
@@ -163,18 +165,17 @@ cpdef wkf (im, imor):
   return imout
 
 # ----------------------------------------------------------------------
-cdef _tridiag (object a_o, object b_o, object c_o, object d_o, object x_o):
-#	_np.ndarray[F64_t, ndim=1] a,
-#	_np.ndarray[F64_t, ndim=1] b,
-#	_np.ndarray[F64_t, ndim=1] c,
-#	_np.ndarray[F64_t, ndim=1] d,
-#	_np.ndarray[F64_t, ndim=1] x):
+@cython.boundscheck(False)
+def _tridiag (
+	_np.ndarray[F64_t, ndim=1] a,
+	_np.ndarray[F64_t, ndim=1] b,
+	_np.ndarray[F64_t, ndim=1] c,
+	_np.ndarray[F64_t, ndim=1] d,
+	_np.ndarray[F64_t, ndim=1] x):
 
   '''
   Implementation of TDMA (tridiagonal matrix algorithm) aka Thomas algorithm
   '''
-
-  cdef _np.ndarray[F64_t, ndim=1] a = a_o, b = b_o, c = c_o, d = d_o, x = x_o
 
   cdef double *A = <double *> a.data
   cdef double *B = <double *> b.data
@@ -204,6 +205,7 @@ cdef _tridiag (object a_o, object b_o, object c_o, object d_o, object x_o):
     X[j] = D[j] - C[j] * X[j+1]
 
 # ----------------------------------------------------------------------
+@cython.boundscheck(False)
 cpdef invwkf (im, imor):
   '''
   invwkf(im, imor) -> 2D Array
