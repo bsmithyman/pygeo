@@ -60,20 +60,21 @@ _gf1d = _ndimage.gaussian_filter1d
 ctypedef _np.float64_t F64_t
 
 # ----------------------------------------------------------------------
-cdef _gsi (_np.ndarray[F64_t, ndim=2] im):
+cdef _gsi (object im_o):
   '''
   Finds the orientation of features (implements GST dip estimation from
   van Vliet and Verbeek (1995). This determines the local dip based on the
   eigenvalue decomposition of the 2D gradient squared tensor.
   '''
-  cdef _np.ndarray[F64_t, ndim=2] grads0, grads1
+
+  cdef _np.ndarray[F64_t, ndim=2] grads0, grads1, im = im_o
 
   grads0 = _gf1d(im, 1, 1, 1)
   grads1 = _gf1d(im, 1, 0, 1)
   return [grads1**2, grads0*grads1, grads0**2]
 
 # ----------------------------------------------------------------------
-cpdef orientation (_np.ndarray[F64_t, ndim=2] im, gfsize=1):
+cpdef orientation (object im_o, gfsize=1):
   '''
   orientation(im, gfsize=1) -> [[lambda1, lambda2],[ori1,ori2]]
 
@@ -82,7 +83,7 @@ cpdef orientation (_np.ndarray[F64_t, ndim=2] im, gfsize=1):
   eigenvalue decomposition of the 2D gradient squared tensor.
   '''
 
-  cdef _np.ndarray[F64_t, ndim=2] g0sq, gmul, g1sq, item, gradsamp, gradsdiff
+  cdef _np.ndarray[F64_t, ndim=2] g0sq, gmul, g1sq, item, gradsamp, gradsdiff, im = im_o
 
   # Gets GST components from above
   [g0sq,gmul,g1sq] = [_gf(item, gfsize) for item in _gsi(im)]
@@ -141,6 +142,8 @@ cpdef wkf (im, imor):
   folds A^TA about its vertical axis to improve its invertability.
   '''
 
+  cdef _np.ndarray[F64_t, ndim=2] mar, par
+
   # Array of m and p values (image dimensions)
   [mar,par] = _mnp(imor)
 
@@ -160,15 +163,18 @@ cpdef wkf (im, imor):
   return imout
 
 # ----------------------------------------------------------------------
-cdef _tridiag (
-	_np.ndarray[F64_t, ndim=1] a,
-	_np.ndarray[F64_t, ndim=1] b,
-	_np.ndarray[F64_t, ndim=1] c,
-	_np.ndarray[F64_t, ndim=1] d,
-	_np.ndarray[F64_t, ndim=1] x):
+cdef _tridiag (object a_o, object b_o, object c_o, object d_o, object x_o):
+#	_np.ndarray[F64_t, ndim=1] a,
+#	_np.ndarray[F64_t, ndim=1] b,
+#	_np.ndarray[F64_t, ndim=1] c,
+#	_np.ndarray[F64_t, ndim=1] d,
+#	_np.ndarray[F64_t, ndim=1] x):
+
   '''
   Implementation of TDMA (tridiagonal matrix algorithm) aka Thomas algorithm
   '''
+
+  cdef _np.ndarray[F64_t, ndim=1] a = a_o, b = b_o, c = c_o, d = d_o, x = x_o
 
   cdef double *A = <double *> a.data
   cdef double *B = <double *> b.data
