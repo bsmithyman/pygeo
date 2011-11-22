@@ -133,6 +133,7 @@ cdef _mnp (imor):
 
 # ----------------------------------------------------------------------
 @cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef wkf (im, imor):
   '''
   wkf(im, imor) -> 2D Array
@@ -166,6 +167,7 @@ cpdef wkf (im, imor):
 
 # ----------------------------------------------------------------------
 @cython.boundscheck(False)
+@cython.wraparound(False)
 def _tridiag (
 	_np.ndarray[F64_t, ndim=1] a,
 	_np.ndarray[F64_t, ndim=1] b,
@@ -206,6 +208,7 @@ def _tridiag (
 
 # ----------------------------------------------------------------------
 @cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef invwkf (im, imor):
   '''
   invwkf(im, imor) -> 2D Array
