@@ -28,6 +28,17 @@ TRHEADLIST = ['tracl','tracr','fldr','tracf','ep','cdp','cdpt','trid','nvs',
 
 MAJORHEADERS = [1,2,3,4,7,38,39]
  
+class SEGYFileException(Exception):
+  '''
+  Catch-all exception class for SEGYFile.
+  '''
+
+  def __init__(self, value):
+    self.parameter = value
+
+  def __str__(self):
+    return repr(self.parameter)
+
 
 class SEGYFile:
   '''
@@ -52,18 +63,6 @@ class SEGYFile:
   ntr = None
   ensembles = None
   initialized = False
-
-  # --------------------------------------------------------------------
-  class SEGYFileException(Exception):
-    '''
-    Catch-all exception class for SEGYFile.
-    '''
-
-    def __init__(self, value):
-      self.parameter = value
-
-    def __str__(self):
-      return repr(self.parameter)
 
   # --------------------------------------------------------------------
 
