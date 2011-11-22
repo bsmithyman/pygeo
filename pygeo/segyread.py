@@ -51,6 +51,13 @@ class SEGYFile:
   initialized = False
 
   # --------------------------------------------------------------------
+  class SEGYFileException(Exception):
+    def __init__(self, value):
+      self.parameter = value
+    def __str__(self):
+      return repr(self.parameter)
+
+  # --------------------------------------------------------------------
 
   # Written by Robert Kern on the SciPy-user mailing list.
   def _ibm2ieee (self, ibm):
@@ -309,7 +316,7 @@ class SEGYFile:
 
   def findTraces (self, key, kmin, kmax):
     if not self.trhead[0].has_key(key):
-      raise Invalid_Trace_Header
+      raise self.SEGYFileException('Invalid trace header: %s'%key)
 
     validtraces = []
 
