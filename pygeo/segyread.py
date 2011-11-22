@@ -52,8 +52,13 @@ class SEGYFile:
 
   # --------------------------------------------------------------------
   class SEGYFileException(Exception):
+    '''
+    Catch-all exception class for SEGYFile.
+    '''
+
     def __init__(self, value):
       self.parameter = value
+
     def __str__(self):
       return repr(self.parameter)
 
