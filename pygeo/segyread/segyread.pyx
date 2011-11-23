@@ -7,6 +7,7 @@ import sys as _sys
 
 import numpy as _np
 cimport numpy as _np
+import cython 
 cimport cython
 
 MEGABYTE = 1048576
@@ -222,6 +223,8 @@ class SEGYFile:
 
   # --------------------------------------------------------------------
 
+  @cython.wraparound(False)
+  @cython.boundscheck(False)
   def readTraces (self, traces=None):
     '''
     Returns trace data as a list of numpy arrays (i.e. non-adjacent trace
@@ -293,11 +296,16 @@ class SEGYFile:
         raise self.SEGYFileException('Unrecognized trace format.')
 
     self._fClose(fp)
+    
+    result = _np.array(result, dtype=_np.float32)
+
+    if (result.shape[0] == 1):
+      result.shape = (result.shape[1],)
 
     if (self.endian == 'Foreign'):
-      return _np.array(result, dtype=_np.float32).byteswap()
+      return result.byteswap()
     else:
-      return _np.array(result, dtype=_np.float32)
+      return result
 
   # --------------------------------------------------------------------
 
