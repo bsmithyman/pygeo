@@ -75,9 +75,9 @@ class SEGYFile:
     exponent = ibm >> 24 & 0x7f
 
     mantissa = ibm & 0x00ffffff
-    mantissa = (mantissa * 1.0) / pow(2, 24)
+    mantissa = (mantissa * 1.0) / 2**24
 
-    ieee = (1 - 2 * sign) * mantissa * pow(16.0, exponent - 64)
+    ieee = (1 - 2 * sign) * mantissa * 16.0**(exponent - 64)
 
     return ieee
 
