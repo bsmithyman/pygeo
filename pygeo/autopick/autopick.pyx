@@ -1,17 +1,11 @@
-import numpy as _np
-cimport numpy as _np
+import numpy as np
+cimport numpy as np
+import cython
 cimport cython
 
-import scipy as _sp
-import scipy.ndimage as _ndimage
-import scipy.fftpack as _fftpack
-import inspect as _inspect
-import multiprocessing as _mp
+np.import_array()
 
-from pygeo.segyread import SEGYFile
-
-ctypedef _np.float32_t F32_t
-ctypedef _np.float64_t F64_t
+ctypedef np.float32_t F32_t
 
 # ------------------------------------------------------------------------
 # Configuration Options
@@ -20,106 +14,25 @@ eardamp = 100
 earwindow = 40
 
 # ------------------------------------------------------------------------
-# Functions
-def _isDescendant (obj, classname):
-  return classname in [item.__name__ for item in _inspect.getmro(obj.__class__)]
+# C External References
+cdef extern void c_energyRatio "energyRatio" (F32_t inarr[], F32_t outarr[], Py_ssize_t arrL, Py_ssize_t arrW, Py_ssize_t strideL, Py_ssize_t strideW, Py_ssize_t windowsize, double damp) nogil
 
-def _window (ints, wstart=10, function=_np.mean):
-  outs = _np.zeros(ints.shape)
-  for i in xrange(wstart,len(ints)):
-    outs[i] = function(ints[i-wstart:i])
+def energyRatio (np.ndarray[F32_t, ndim=2] traces, Py_ssize_t windowsize=earwindow, double damp=eardamp):
 
-  return outs
+  cdef np.ndarray[F32_t, ndim=2] result
+  result = np.empty((traces.shape[0],traces.shape[1]), dtype=np.float32)
 
-def _windowStart (ints, function=_np.mean):
-  outs = _np.zeros(ints.shape)
-  for i in xrange(len(ints)):
-    outs[i] = function(ints[:i])
-  return outs
+  cdef Py_ssize_t arrL, arrW, strideL, strideW
+  cdef F32_t *inarr = <F32_t *> traces.data
+  cdef F32_t *outarr = <F32_t *> result.data
 
-def _energy (ints):
-  return _np.sum(_np.square(ints))
+  arrL = traces.shape[0]
+  arrW = traces.shape[1]
+  strideL = traces.strides[0]
+  strideW = traces.strides[1]
 
-def _energyRatioFilter (options):
-  [ints, windowsize, damp] = options
-  b = _window(ints,windowsize,_energy)
-  B = _windowStart(ints,_energy)
-  return b/(B+damp)
+  with cython.nogil:
+    c_energyRatio(inarr, outarr, arrL, arrW, strideL, strideW, windowsize, damp)
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def energyRatio (traces, windowsize=earwindow, damp=eardamp, pool=None):
-  '''
-  Return the energy ratio between a sliding window of a given size and the
-  total energy to that point in the file.
-  '''
+  return result
 
-  if (len(traces.shape) == 1):
-    traces = _energyRatioFilter(traces, windowsize, damp)
-  else:
-    if (pool is None):
-      try:
-        pool = _mp.Pool()
-      except:
-        myMap = map
-      else:
-        myMap = pool.map
-
-    nt = len(traces)
-
-    traces = _np.array(myMap(_energyRatioFilter, zip(traces, nt*[windowsize], nt*[damp])))
-
-  return traces
-
-# ------------------------------------------------------------------------
-# Classes
-class SEGYPicker (SEGYFile):
-  '''
-  Descendant of SEGYFile optimized and extended for automatic first-arrival
-  picking.
-  '''
-
-  # Override Options
-  #verbose = False
-
-  def _window (self, ints, wstart=10, function=_np.mean):
-    outs = _np.zeros(ints.shape)
-    for i in xrange(wstart,len(ints)):
-      outs[i] = function(ints[i-wstart:i])
-
-    return outs
-
-  def _windowStart (self, ints, function=_np.mean):
-    outs = _np.zeros(ints.shape)
-    for i in xrange(len(ints)):
-      outs[i] = function(ints[:i])
-    return outs
-
-  def _energy (self, ints):
-    return _np.sum(_np.square(ints))
-
-  def _energyRatioFilter (self, ints, windowsize, damp):
-    b = self._window(ints,windowsize,self._energy)
-    B = self._windowStart(ints,self._energy)
-    return b/(B+damp)
-
-  @cython.wraparound(False)
-  @cython.boundscheck(False)
-  def energyRatio (self, traces=None, windowsize=earwindow, damp=eardamp):
-    '''
-    Return the energy ratio between a sliding window of a given size and the
-    total energy to that point in the file.
-    '''
-
-    if (_isDescendant(traces, 'ndarray')):
-      traces = traces.copy()
-    else:
-      traces = self.readTraces(traces)
-
-    if (len(traces.shape) == 1):
-      traces = self._energyRatioFilter(traces, windowsize, damp)
-    else:
-      for i in xrange(traces.shape[0]):
-        traces[i][:] = self._energyRatioFilter(traces[i], windowsize, damp)[:]
-
-    return traces
