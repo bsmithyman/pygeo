@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <omp.h>
 #include <Python.h>	
 #include <math.h>

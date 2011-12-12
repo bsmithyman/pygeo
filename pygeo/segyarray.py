@@ -95,7 +95,7 @@ class SUArray (np.ndarray):
   def get_trhead(self, trace):
     '''Gets trace headers for a zero-based trace number.'''
 
-    offset = 3600 + trace*self.strides[0]
+    offset = trace*self.strides[0]
     tth = struct.unpack(STRUCT_TRHEAD,self.fm[offset:offset+180])
     traceheaders = {}
     for i, label in enumerate(TRHEADLIST):

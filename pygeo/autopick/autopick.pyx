@@ -38,8 +38,8 @@ def energyRatio (np.ndarray[F32_t, ndim=2] traces, Py_ssize_t windowsize=earwind
   strideL = traces.strides[0]
   strideW = traces.strides[1]
 
-  with cython.nogil:
-    c_energyRatio(inarr, outarr, arrL, arrW, strideL, strideW, windowsize, damp)
+  #with cython.nogil:
+  c_energyRatio(inarr, outarr, arrL, arrW, strideL, strideW, windowsize, damp)
 
   return result
 
