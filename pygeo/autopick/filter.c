@@ -33,8 +33,7 @@ void energyRatio (	float *inarr,
         } else {
           windowTotalEnergy += cursq - inarr[pos - windowsize]*inarr[pos - windowsize];
           // The result is output to the array in parallel
-          // Modified to add j, because it's AWESOME
-          outarr[pos] = j* windowTotalEnergy / (totalEnergy + damp);
+          outarr[pos] = windowTotalEnergy / (totalEnergy + damp);
         }
       } // End local for over j
 
