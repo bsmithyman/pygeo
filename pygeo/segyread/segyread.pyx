@@ -27,26 +27,53 @@ TRHEADLIST = ['tracl','tracr','fldr','tracf','ep','cdp','cdpt','trid','nvs',
              'nofilf','nofils','lcf','hcf','lcs','hcs','year','day','hour','minute','sec',
              'timbas','trwf','grnors','grnofr','grnlof','gaps','otrav']
 
+TRHEADSTRUCT = '>7L4H8L2H4L46H'
+
 MAJORHEADERS = [1,2,3,4,7,38,39]
- 
+
 class SEGYFileException(Exception):
   '''
   Catch-all exception class for SEGYFile.
   '''
 
-  def __init__(self, value):
+  def __init__ (self, value):
     self.parameter = value
 
-  def __str__(self):
+  def __str__ (self):
     return repr(self.parameter)
 
+class SEGYTraceHeader:
+
+  def __init__ (self, sf):
+    self.sf = sf
+
+  def __len__ (self):
+    return self.sf.ntr
+
+  def __getitem__ (self, index):
+    sf = self.sf
+    fp = sf.fOpen()
+    curloc = fp.tell()
+    fp.seek(sf._calcHeadOffset(index+1, sf.ns))
+
+    traceheader = fp.read(240)
+    traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
+    tracehead = {}
+
+    for i, label in enumerate(TRHEADLIST):
+      tracehead[label] = traceheader[i]
+
+    fp.seek(curloc)
+    sf.fClose(fp)
+
+    return tracehead
 
 class SEGYFile:
   '''
   Provides read access to a SEG-Y dataset (headers and data).
   '''
 
-  mmaplimit = 1000*MEGABYTE # Limit memory mapped i/o to files under 1000M
+  mmaplimit = 2000*MEGABYTE # Limit memory mapped i/o to files under 1000M
 
   filename = None
   verbose = True
@@ -64,6 +91,9 @@ class SEGYFile:
   ntr = None
   ensembles = None
   initialized = False
+  filesize = 0
+  ns = 0
+  ntr = 0
 
   # --------------------------------------------------------------------
 
@@ -110,13 +140,13 @@ class SEGYFile:
 
   # --------------------------------------------------------------------
 
-  def _fOpen (self, filename):
+  def fOpen (self):
     if self.usemmap:
       return self._map
     else:
-      return open(filename, 'rb')
+      return open(self.filename, 'rb')
 
-  def _fClose (self, fp):
+  def fClose (self, fp):
     if not self.usemmap:
       fp.close()
     return
@@ -137,7 +167,7 @@ class SEGYFile:
     '''
 
     self._maybePrint('Reading SEG-Y headers...')
-    fp = self._fOpen(self.filename)
+    fp = self.fOpen()
 
     if (not self.isSU):
       textheader = fp.read(3200).replace(' ','\x25').decode('IBM500')
@@ -149,39 +179,33 @@ class SEGYFile:
       for i, label in enumerate(BHEADLIST):
         bhead[label] = blockheader[i]
 
+      if (bhead['hns'] != 0):
+        self.ns = bhead['hns']
+      else:
+        traceheaders = fp.read(240)
+        traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
+        self.ns = traceheader[38]
+      self.ntr = (self.filesize - 3600) / (240 + 4*self.ns)
+
     else:
       textheader = None
       bhead = None
 
-    traceheaders = []
+      traceheaders = fp.read(240)
+      traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
+      self.ns = traceheader[38]
+      self.ntr = self.filesize / (240 + 4*self.ns)
 
-    try:
-      while True:
-        traceheader = fp.read(240)
-        traceheader = _struct.unpack('>7L4H8L2H4L46H',traceheader[:180])
-        tracehead = {}
-
-        if (self.majorheadersonly):
-          for i in MAJORHEADERS:
-            tracehead[TRHEADLIST[i]] = traceheader[i]
-        else:
-          for i, label in enumerate(TRHEADLIST):
-            tracehead[label] = traceheader[i]
-
-        traceheaders.append(tracehead)
-        fp.seek(4*tracehead['ns'],1)
-
-    except:
-      self._fClose(fp)
+    traceheaders = SEGYTraceHeader(self)
 
     self._maybePrint('Read SEG-Y headers.\n\t%d traces present.\n' % (len(traceheaders)))
 
-    [self.thead, self.bhead, self.trhead, self.ntr] = [textheader, bhead, traceheaders, len(traceheaders)]
+    [self.thead, self.bhead, self.trhead] = [textheader, bhead, traceheaders]
     return
 
   # --------------------------------------------------------------------
 
-  def _calcOffset (self, trace, ns):
+  def _calcDataOffset (self, trace, ns):
     '''
     Calculates the byte offset of the beginning of the data portion of a
     seismic trace, given the trace number and the number of samples per.
@@ -191,6 +215,14 @@ class SEGYFile:
       return 3200 + 400 + 240 + (ns*self.samplen + 240)*(trace-1)
     else:
       return 240 + (ns*4 + 240)*(trace-1)
+
+  def _calcHeadOffset (self, trace, ns):
+    '''
+    Calculates the byte offset of the beginning of the head portion of a
+    seismic trace, given the trace number and the number of samples per.
+    '''
+
+    return self._calcDataOffset(trace, ns) - 240
 
   # --------------------------------------------------------------------
 
@@ -231,8 +263,8 @@ class SEGYFile:
     numbers are allowed). Requires that traces be fixed length.
     '''
 
-    ns = self.trhead[0]['ns']
-    fp = self._fOpen(self.filename)
+    ns = self.ns
+    fp = self.fOpen()
 
     result = []
 
@@ -245,7 +277,7 @@ class SEGYFile:
     # Handles SU format and IEEE floating point
     if (self.isSU or self.bhead['format'] == 5):
       for trace in traces:
-        fp.seek(self._calcOffset(trace, ns))
+        fp.seek(self._calcDataOffset(trace, ns))
         tracetemp = fp.read(ns*4)
         result.append(_np.array(_struct.unpack('>%df'%(ns,), tracetemp), dtype=_np.float32))
 
@@ -259,7 +291,7 @@ class SEGYFile:
         if (self._isInitialized()):
           self._maybePrint('             ...converting from IBM floating point.\n')
         for trace in traces:
-          fp.seek(self._calcOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace, ns))
           tracetemp = _struct.pack('%df'%(ns,),*[self._ibm2ieee(item) for item in _struct.unpack('>%dL'%(ns,),fp.read(ns*4))])
           result.append(_np.array(_struct.unpack('>%df'%(ns,), tracetemp), dtype=_np.float32))
 
@@ -267,35 +299,35 @@ class SEGYFile:
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 32-bit fixed point.\n')
         for trace in traces:
-          fp.seek(self._calcOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace, ns))
           result.append(_np.array(_struct.unpack('>%dl'%(ns,),fp.read(ns*4)), dtype=_np.int32))
 
       elif (self.bhead['format'] == 3):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 16-bit fixed point.\n')
         for trace in traces:
-          fp.seek(self._calcOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace, ns))
           result.append(_np.array(_struct.unpack('>%dh'%(ns,),fp.read(ns*2)), dtype=_np.int32))
 
       elif (self.bhead['format'] == 8):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 8-bit fixed point.\n')
         for trace in traces:
-          fp.seek(self._calcOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace, ns))
           result.append(_np.array(_struct.unpack('>%db'%(ns,),fp.read(ns)), dtype=_np.int32))
 
       elif (self.bhead['format'] == 4):
         if (self._isInitialized()):
           self._maybePrint('             ...converting from 32-bit fixed point w/ gain.\n')
         for trace in traces:
-          fp.seek(self._calcOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace, ns))
           tracemantissa = _np.array(_struct.unpack('>%s'%(ns*'xxh',), fp.read(ns)), dtype=_np.float32)
           traceexponent = _np.array(_struct.unpack('>%s'%(ns*'xbxx',), fp.read(ns)), dtype=_np.byte)
           result.append(tracemantissa**traceexponent)
       else:
         raise self.SEGYFileException('Unrecognized trace format.')
 
-    self._fClose(fp)
+    self.fClose(fp)
     
     result = _np.array(result, dtype=_np.float32)
 
@@ -315,7 +347,7 @@ class SEGYFile:
     Otherwise similar to readTraces.
     '''
 
-    ns = self.trhead[0]['ns']
+    ns = self.ns
 
     result = []
 
@@ -324,7 +356,7 @@ class SEGYFile:
 
     for trace in traces:
       tracetemp = _np.memmap(self.filename, 'float32', 'c', 
-                         offset=self._calcOffset(trace, ns)/4, shape=(ns,))
+                         offset=self._calcDataOffset(trace, ns)/4, shape=(ns,))
       result.append(tracetemp)
 
     return result
@@ -381,7 +413,9 @@ class SEGYFile:
     self.mendian = self._detect_machine_endian()
     self._maybePrint('%s.\n'%(self.mendian,))
 
-    if _path.getsize(filename) < self.mmaplimit:
+    self.filesize = _path.getsize(filename)
+
+    if self.filesize < self.mmaplimit:
       self.usemmap = True
       self._fp = open(self.filename, 'r+b')
       try:
@@ -404,7 +438,7 @@ class SEGYFile:
     self._getSamplen()
 
     # Attempt to find shot-record boundaries
-    self._calcEnsembles()
+    #self._calcEnsembles()
 
     # Autodetect data endian
     self._detectEndian()
@@ -449,17 +483,17 @@ class SEGYFile:
 
     ntraces = len(self.trhead)
 
-    ns = self.trhead[0]['ns']
-    fp = self._fOpen(self.filename)
+    ns = self.ns
+    fp = self.fOpen()
 
     fp_out = open(outfilename, "w")
 
     for trace in xrange(1, ntraces+1):
-      fp.seek(self._calcOffset(trace,ns))
+      fp.seek(self._calcDataOffset(trace,ns))
       fp_out.write(fp.read(ns*4))
 
     fp_out.close()
-    self._fClose(fp)
+    self.fClose(fp)
 
   # --------------------------------------------------------------------
 
@@ -474,7 +508,7 @@ class SEGYFile:
 
     ntraces = len(traces)
 
-    ns = trhead[0]['ns']
+    ns = self.ns
 
     fp = open(outfilename, 'w+b')
 
@@ -485,7 +519,7 @@ class SEGYFile:
     fp.write(bheadbin)
 
     for i, trace in enumerate(traces):
-      trheadbin = _struct.pack('>7L4H8L2H4L46H', *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
+      trheadbin = _struct.pack(TRHEADSTRUCT, *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
       fp.write(trheadbin)
       tracetemp = _struct.pack('>%df'%(ns,), *list(trace))
       fp.write(tracetemp)
@@ -501,12 +535,12 @@ class SEGYFile:
 
     ntraces = len(traces)
 
-    ns = trhead[0]['ns']
+    ns = self.ns
 
     fp = open(outfilename, 'w+b')
 
     for i, trace in enumerate(traces):
-      trheadbin = _struct.pack('>7L4H8L2H4L46H', *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
+      trheadbin = _struct.pack(TRHEADSTRUCT, *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
       fp.write(trheadbin)
       tracetemp = _struct.pack('>%df'%(ns,), *list(trace))
       fp.write(tracetemp)
