@@ -42,7 +42,7 @@ class SEGYFileException(Exception):
   def __str__ (self):
     return repr(self.parameter)
 
-class SEGYTraceHeader:
+class SEGYTraceHeader (object):
 
   def __init__ (self, sf):
     self.sf = sf
@@ -68,15 +68,16 @@ class SEGYTraceHeader:
 
     return tracehead
 
-class SEGYFile:
+class SEGYFile (object):
   '''
   Provides read access to a SEG-Y dataset (headers and data).
   '''
 
-  mmaplimit = 2000*MEGABYTE # Limit memory mapped i/o to files under 1000M
+  # In what circumstances would this actually be useful?
+  #mmaplimit = 2000*MEGABYTE # Limit memory mapped i/o to files under 1000M
 
   filename = None
-  verbose = True
+  verbose = False
   majorheadersonly = True
   isSU = False
   endian = 'Auto'
@@ -185,7 +186,6 @@ class SEGYFile:
         traceheaders = fp.read(240)
         traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
         self.ns = traceheader[38]
-      self.ntr = (self.filesize - 3600) / (240 + 4*self.ns)
 
     else:
       textheader = None
@@ -194,7 +194,6 @@ class SEGYFile:
       traceheaders = fp.read(240)
       traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
       self.ns = traceheader[38]
-      self.ntr = self.filesize / (240 + 4*self.ns)
 
     traceheaders = SEGYTraceHeader(self)
 
@@ -415,21 +414,21 @@ class SEGYFile:
 
     self.filesize = _path.getsize(filename)
 
-    if self.filesize < self.mmaplimit:
-      self.usemmap = True
-      self._fp = open(self.filename, 'r+b')
-      try:
-        self._maybePrint('Trying to create memory map...')
-        self._map = _mmap.mmap(self._fp.fileno(), 0)
-        self._maybePrint('Success. Using memory-mapped I/O.\n')
-      except:
-        self._fp.close()
-        del self._fp
-        self.usemmap = False
-        self._maybePrint('Memory map failed; using conventional I/O.\n')
-    else:
+    #if self.filesize < self.mmaplimit:
+    self.usemmap = True
+    self._fp = open(self.filename, 'r+b')
+    try:
+      self._maybePrint('Trying to create memory map...')
+      self._map = _mmap.mmap(self._fp.fileno(), 0)
+      self._maybePrint('Success. Using memory-mapped I/O.\n')
+    except:
+      self._fp.close()
+      del self._fp
       self.usemmap = False
-      self._maybePrint('File exceeds %d MB; using conventional I/O.\n'%(self.mmaplimit / MEGABYTE,))
+      self._maybePrint('Memory map failed; using conventional I/O.\n')
+    #else:
+    #  self.usemmap = False
+    #  self._maybePrint('File exceeds %d MB; using conventional I/O.\n'%(self.mmaplimit / MEGABYTE,))
 
     # Get header information from file
     self._readHeaders()
@@ -458,6 +457,7 @@ class SEGYFile:
   def _getSamplen (self):
     if (self.isSU):
       self.samplen = 4
+      self.ntr = (self.filesize) / (240 + self.samplen*self.ns)
       return
 
     if (self.bhead['format'] == 3):
@@ -466,6 +466,8 @@ class SEGYFile:
       self.samplen = 1
     else:
       self.samplen = 4
+
+    self.ntr = (self.filesize - 3600) / (240 + self.samplen*self.ns)
 
   # --------------------------------------------------------------------
 
@@ -546,3 +548,8 @@ class SEGYFile:
       fp.write(tracetemp)
 
     fp.close()
+
+  # --------------------------------------------------------------------
+
+  def __len__ (self):
+    return self.ntr
