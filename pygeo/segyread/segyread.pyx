@@ -183,7 +183,7 @@ class SEGYFile (object):
       if (bhead['hns'] != 0):
         self.ns = bhead['hns']
       else:
-        traceheaders = fp.read(240)
+        traceheader = fp.read(240)
         traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
         self.ns = traceheader[38]
 
@@ -191,7 +191,7 @@ class SEGYFile (object):
       textheader = None
       bhead = None
 
-      traceheaders = fp.read(240)
+      traceheader = fp.read(240)
       traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
       self.ns = traceheader[38]
 
