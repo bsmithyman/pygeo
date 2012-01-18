@@ -51,6 +51,11 @@ class SEGYTraceHeader (object):
     return self.sf.ntr
 
   def __getitem__ (self, index):
+
+    if isinstance(index, slice):
+      indices = index.indices(len(self))
+      return [self.__getitem__(i) for i in range(*indices)]
+
     sf = self.sf
     fp = sf.fOpen()
     curloc = fp.tell()
@@ -262,21 +267,31 @@ class SEGYFile (object):
     numbers are allowed). Requires that traces be fixed length.
     '''
 
+    if (traces == None):
+      return self.__getitem__(slice(None))
+
+    if not _np.iterable(traces):
+      return self.__getitem__(traces-1)
+    else:
+      return _np.array([self.__getitem__(trace-1) for trace in traces], dtype=_np.float32)
+
+  def __getitem__ (self, index):
+
+    if isinstance(index, slice):
+      indices = index.indices(len(self))
+      traces = range(*indices)
+    else:
+      traces = [index]
+
     ns = self.ns
     fp = self.fOpen()
 
     result = []
 
-    if (traces == None):
-      traces = range(1, self.ntr+1)
-
-    if not _np.iterable(traces):
-      traces = [traces]
-
     # Handles SU format and IEEE floating point
     if (self.isSU or self.bhead['format'] == 5):
       for trace in traces:
-        fp.seek(self._calcDataOffset(trace, ns))
+        fp.seek(self._calcDataOffset(trace+1, ns))
         tracetemp = fp.read(ns*4)
         result.append(_np.array(_struct.unpack('>%df'%(ns,), tracetemp), dtype=_np.float32))
 
@@ -290,7 +305,7 @@ class SEGYFile (object):
         if (self._isInitialized()):
           self._maybePrint('             ...converting from IBM floating point.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace+1, ns))
           tracetemp = _struct.pack('%df'%(ns,),*[self._ibm2ieee(item) for item in _struct.unpack('>%dL'%(ns,),fp.read(ns*4))])
           result.append(_np.array(_struct.unpack('>%df'%(ns,), tracetemp), dtype=_np.float32))
 
@@ -298,28 +313,28 @@ class SEGYFile (object):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 32-bit fixed point.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace+1, ns))
           result.append(_np.array(_struct.unpack('>%dl'%(ns,),fp.read(ns*4)), dtype=_np.int32))
 
       elif (self.bhead['format'] == 3):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 16-bit fixed point.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace+1, ns))
           result.append(_np.array(_struct.unpack('>%dh'%(ns,),fp.read(ns*2)), dtype=_np.int32))
 
       elif (self.bhead['format'] == 8):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 8-bit fixed point.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace+1, ns))
           result.append(_np.array(_struct.unpack('>%db'%(ns,),fp.read(ns)), dtype=_np.int32))
 
       elif (self.bhead['format'] == 4):
         if (self._isInitialized()):
           self._maybePrint('             ...converting from 32-bit fixed point w/ gain.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace, ns))
+          fp.seek(self._calcDataOffset(trace+1, ns))
           tracemantissa = _np.array(_struct.unpack('>%s'%(ns*'xxh',), fp.read(ns)), dtype=_np.float32)
           traceexponent = _np.array(_struct.unpack('>%s'%(ns*'xbxx',), fp.read(ns)), dtype=_np.byte)
           result.append(tracemantissa**traceexponent)
@@ -553,3 +568,4 @@ class SEGYFile (object):
 
   def __len__ (self):
     return self.ntr
+
