@@ -200,6 +200,9 @@ class SEGYFile (object):
       traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
       self.ns = traceheader[38]
 
+    self.thead = textheader
+    self.bhead = bhead
+
     # Determine length of each sample from FORMAT code
     self._getSamplen()
 
@@ -207,7 +210,7 @@ class SEGYFile (object):
 
     self._maybePrint('Read SEG-Y headers.\n\t%d traces present.\n' % (len(traceheaders)))
 
-    [self.thead, self.bhead, self.trhead] = [textheader, bhead, traceheaders]
+    self.trhead = traceheaders
     return
 
   # --------------------------------------------------------------------
