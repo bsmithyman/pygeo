@@ -200,6 +200,9 @@ class SEGYFile (object):
       traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
       self.ns = traceheader[38]
 
+    # Determine length of each sample from FORMAT code
+    self._getSamplen()
+
     traceheaders = SEGYTraceHeader(self)
 
     self._maybePrint('Read SEG-Y headers.\n\t%d traces present.\n' % (len(traceheaders)))
@@ -449,7 +452,7 @@ class SEGYFile (object):
     self._readHeaders()
 
     # Determine length of each sample from FORMAT code
-    self._getSamplen()
+    #self._getSamplen()
 
     # Attempt to find shot-record boundaries
     #self._calcEnsembles()
