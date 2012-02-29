@@ -23,7 +23,7 @@ TRHEADLIST = ['tracl','tracr','fldr','tracf','ep','cdp','cdpt','trid','nvs',
              'nofilf','nofils','lcf','hcf','lcs','hcs','year','day','hour','minute','sec',
              'timbas','trwf','grnors','grnofr','grnlof','gaps','otrav']
 
-TRHEADSTRUCT = '>7L4H8L2H4L46H'
+TRHEADSTRUCT = '>7L4H8L2h4L46H'
 
 MAJORHEADERS = [1,2,3,4,7,38,39]
 
@@ -395,13 +395,14 @@ class SEGYFile (object):
     self.ensembles = {}
 
     self._maybePrint('Scanning ensembles...')
-    for i, headers in enumerate(self.trhead):
+    for i in xrange(len(self)):
+      fldr = self.trhead[i]['fldr']
 
       try:
-        self.ensembles.keys().index(headers['fldr'])
+        self.ensembles.keys().index(fldr)
 
       except ValueError:
-        self.ensembles[headers['fldr']] = i
+        self.ensembles[fldr] = i
 
     self._maybePrint('Complete. Found %d ensemble(s).\n'%(len(self.ensembles),))
        
