@@ -2,7 +2,7 @@ from scipy import zeros, array, int16, int64, float32, linspace
 from mmap import *
 from struct import *
 
-rlpad = 8
+rlpad = 4
 
 if (rlpad == 8):
   rlpak = 'Q'

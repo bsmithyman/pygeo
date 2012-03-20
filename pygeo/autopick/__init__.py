@@ -8,3 +8,4 @@ else:
     from autopick import *
   except ImportError:
     print('Coud not build/import autopick.pyx; pygeo.autopick will not function.')
+    raise

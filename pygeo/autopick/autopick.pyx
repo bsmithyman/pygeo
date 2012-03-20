@@ -1,12 +1,12 @@
-import numpy as np
-cimport numpy as np
 import cython
 cimport cython
+import numpy as np
+cimport numpy as np
 
 from scipy.fftpack import hilbert as _hilbert
 from scipy.ndimage import median_filter as _mf
 
-np.import_array()
+#np.import_array()
 
 ctypedef np.float32_t F32_t
 
