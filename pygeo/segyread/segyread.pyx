@@ -502,7 +502,6 @@ class SEGYFile (object):
       fp_out.write(self._fp.read(ns*4))
 
     fp_out.close()
-    #self.fClose(fp)
 
   # --------------------------------------------------------------------
 

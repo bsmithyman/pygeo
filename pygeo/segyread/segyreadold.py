@@ -53,19 +53,17 @@ class SEGYTraceHeader (object):
       return [self.__getitem__(i) for i in range(*indices)]
 
     sf = self.sf
-    fp = sf.fOpen()
-    curloc = fp.tell()
-    fp.seek(sf._calcHeadOffset(index+1, sf.ns))
+    curloc = sf._fp.tell()
+    sf._fp.seek(sf._calcHeadOffset(index+1, sf.ns))
 
-    traceheader = fp.read(240)
+    traceheader = sf._fp.read(240)
     traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
     tracehead = {}
 
     for i, label in enumerate(TRHEADLIST):
       tracehead[label] = traceheader[i]
 
-    fp.seek(curloc)
-    sf.fClose(fp)
+    sf._fp.seek(curloc)
 
     return tracehead
 
@@ -73,9 +71,6 @@ class SEGYFile (object):
   '''
   Provides read access to a SEG-Y dataset (headers and data).
   '''
-
-  # In what circumstances would this actually be useful?
-  #mmaplimit = 2000*MEGABYTE # Limit memory mapped i/o to files under 1000M
 
   filename = None
   verbose = False
@@ -86,7 +81,7 @@ class SEGYFile (object):
   samplen = 4
 
   mendian = None
-  usemmap = False
+  usemmap = True
   thead = None
   bhead = None
   trhead = None
@@ -142,19 +137,6 @@ class SEGYFile (object):
 
   # --------------------------------------------------------------------
 
-  def fOpen (self):
-    if self.usemmap:
-      return self._map
-    else:
-      return open(self.filename, 'rb')
-
-  def fClose (self, fp):
-    if not self.usemmap:
-      fp.close()
-    return
-
-  # --------------------------------------------------------------------
-
   def _readHeaders (self):
 
     '''
@@ -169,11 +151,10 @@ class SEGYFile (object):
     '''
 
     self._maybePrint('Reading SEG-Y headers...')
-    fp = self.fOpen()
 
     if (not self.isSU):
-      textheader = fp.read(3200).replace(' ','\x25').decode('IBM500')
-      blockheader = fp.read(400)
+      textheader = self._fp.read(3200).replace(' ','\x25').decode('IBM500')
+      blockheader = self._fp.read(400)
 
       blockheader = _struct.unpack('>3L24H',blockheader[:60])
       bhead = {}
@@ -184,7 +165,7 @@ class SEGYFile (object):
       if (bhead['hns'] != 0):
         self.ns = bhead['hns']
       else:
-        traceheader = fp.read(240)
+        traceheader = self._fp.read(240)
         traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
         self.ns = traceheader[38]
 
@@ -192,7 +173,7 @@ class SEGYFile (object):
       textheader = None
       bhead = None
 
-      traceheader = fp.read(240)
+      traceheader = self._fp.read(240)
       traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
       self.ns = traceheader[38]
 
@@ -284,15 +265,14 @@ class SEGYFile (object):
       traces = [index]
 
     ns = self.ns
-    fp = self.fOpen()
 
     result = []
 
     # Handles SU format and IEEE floating point
     if (self.isSU or self.bhead['format'] == 5):
       for trace in traces:
-        fp.seek(self._calcDataOffset(trace+1, ns))
-        tracetemp = fp.read(ns*4)
+        self._fp.seek(self._calcDataOffset(trace+1, ns))
+        tracetemp = self._fp.read(ns*4)
         result.append(_np.array(_struct.unpack('>%df'%(ns,), tracetemp), dtype=_np.float32))
 
     # Handles everything else
@@ -305,43 +285,42 @@ class SEGYFile (object):
         if (self._isInitialized()):
           self._maybePrint('             ...converting from IBM floating point.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace+1, ns))
-          tracetemp = _struct.pack('%df'%(ns,),*[self._ibm2ieee(item) for item in _struct.unpack('>%dL'%(ns,),fp.read(ns*4))])
+          self._fp.seek(self._calcDataOffset(trace+1, ns))
+          tracetemp = _struct.pack('%df'%(ns,),*[self._ibm2ieee(item) for item in _struct.unpack('>%dL'%(ns,),self._fp.read(ns*4))])
           result.append(_np.array(_struct.unpack('>%df'%(ns,), tracetemp), dtype=_np.float32))
 
       elif (self.bhead['format'] == 2):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 32-bit fixed point.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace+1, ns))
-          result.append(_np.array(_struct.unpack('>%dl'%(ns,),fp.read(ns*4)), dtype=_np.int32))
+          self._fp.seek(self._calcDataOffset(trace+1, ns))
+          result.append(_np.array(_struct.unpack('>%dl'%(ns,),self._fp.read(ns*4)), dtype=_np.int32))
 
       elif (self.bhead['format'] == 3):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 16-bit fixed point.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace+1, ns))
-          result.append(_np.array(_struct.unpack('>%dh'%(ns,),fp.read(ns*2)), dtype=_np.int32))
+          self._fp.seek(self._calcDataOffset(trace+1, ns))
+          result.append(_np.array(_struct.unpack('>%dh'%(ns,),self._fp.read(ns*2)), dtype=_np.int32))
 
       elif (self.bhead['format'] == 8):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 8-bit fixed point.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace+1, ns))
-          result.append(_np.array(_struct.unpack('>%db'%(ns,),fp.read(ns)), dtype=_np.int32))
+          self._fp.seek(self._calcDataOffset(trace+1, ns))
+          result.append(_np.array(_struct.unpack('>%db'%(ns,),self._fp.read(ns)), dtype=_np.int32))
 
       elif (self.bhead['format'] == 4):
         if (self._isInitialized()):
           self._maybePrint('             ...converting from 32-bit fixed point w/ gain.\n')
         for trace in traces:
-          fp.seek(self._calcDataOffset(trace+1, ns))
-          tracemantissa = _np.array(_struct.unpack('>%s'%(ns*'xxh',), fp.read(ns)), dtype=_np.float32)
-          traceexponent = _np.array(_struct.unpack('>%s'%(ns*'xbxx',), fp.read(ns)), dtype=_np.byte)
+          self._fp.seek(self._calcDataOffset(trace+1, ns))
+          tracemantissa = _np.array(_struct.unpack('>%s'%(ns*'xxh',), self._fp.read(ns)), dtype=_np.float32)
+          traceexponent = _np.array(_struct.unpack('>%s'%(ns*'xbxx',), self._fp.read(ns)), dtype=_np.byte)
           result.append(tracemantissa**traceexponent)
       else:
         raise self.SEGYFileException('Unrecognized trace format.')
 
-    self.fClose(fp)
     
     result = _np.array(result, dtype=_np.float32)
 
@@ -352,6 +331,12 @@ class SEGYFile (object):
       return result.byteswap()
     else:
       return result
+
+  # --------------------------------------------------------------------
+
+  def __repr__ (self):
+    #return 'SEGYFile(%r, verbose=%r, isSU=%r, endian=%r)'%(self.filename,self.verbose,self.isSU,self.endian)
+    return 'SEGYFile(%r)'%(self.filename,)
 
   # --------------------------------------------------------------------
 
@@ -408,7 +393,7 @@ class SEGYFile (object):
        
   # --------------------------------------------------------------------
 
-  def __init__ (self, filename, verbose = None, majorheadersonly = None, isSU = None, endian = None):
+  def __init__ (self, filename, verbose = None, majorheadersonly = None, isSU = None, endian = None, usemmap = None):
 
     self.filename = filename
 
@@ -424,27 +409,28 @@ class SEGYFile (object):
     if (endian is not None):
       self.endian = endian
 
+    if (usemmap is not None):
+      self.usemmap = usemmap
+
     self._maybePrint('Detecting machine endianness...')
     self.mendian = self._detect_machine_endian()
     self._maybePrint('%s.\n'%(self.mendian,))
 
     self.filesize = _path.getsize(filename)
 
-    #if self.filesize < self.mmaplimit:
-    self.usemmap = True
-    self._fp = open(self.filename, 'r+b')
-    try:
-      self._maybePrint('Trying to create memory map...')
-      self._map = _mmap.mmap(self._fp.fileno(), 0)
-      self._maybePrint('Success. Using memory-mapped I/O.\n')
-    except:
-      self._fp.close()
-      del self._fp
-      self.usemmap = False
-      self._maybePrint('Memory map failed; using conventional I/O.\n')
-    #else:
-    #  self.usemmap = False
-    #  self._maybePrint('File exceeds %d MB; using conventional I/O.\n'%(self.mmaplimit / MEGABYTE,))
+    fp = open(self.filename, 'r+b')
+    if (self.usemmap):
+      try:
+        self._maybePrint('Trying to create memory map...')
+        self._fp = _mmap.mmap(fp.fileno(), 0)
+        self._maybePrint('Success. Using memory-mapped I/O.\n')
+        fp.close()
+      except:
+        self._fp = fp
+        self.usemmap = False
+        self._maybePrint('Memory map failed; using conventional I/O.\n')
+    else:
+      self._fp = fp
 
     # Get header information from file
     self._readHeaders()
@@ -466,7 +452,7 @@ class SEGYFile (object):
   def __del__ (self):
     if self.usemmap:
       self._map.close()
-      self._fp.close()
+    self._fp.close()
 
   # --------------------------------------------------------------------
 
@@ -502,16 +488,14 @@ class SEGYFile (object):
     ntraces = len(self.trhead)
 
     ns = self.ns
-    fp = self.fOpen()
 
     fp_out = open(outfilename, "w")
 
     for trace in xrange(1, ntraces+1):
-      fp.seek(self._calcDataOffset(trace,ns))
-      fp_out.write(fp.read(ns*4))
+      self._fp.seek(self._calcDataOffset(trace,ns))
+      fp_out.write(self._fp.read(ns*4))
 
     fp_out.close()
-    self.fClose(fp)
 
   # --------------------------------------------------------------------
 
