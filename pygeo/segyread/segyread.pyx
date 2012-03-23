@@ -361,6 +361,12 @@ class SEGYFile (object):
 
   # --------------------------------------------------------------------
 
+  def __repr__ (self):
+    #return 'SEGYFile(%r, verbose=%r, isSU=%r, endian=%r)'%(self.filename,self.verbose,self.isSU,self.endian)
+    return 'SEGYFile(%r)'%(self.filename,)
+
+  # --------------------------------------------------------------------
+
   def lockTraces (self, traces):
     '''
     Returns trace data as a list of memory-mapped array-like objects.
