@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-from pygeo.segyread import SEGYFile
+import numpy as np
 import sys
+from pygeo.segyread import SEGYFile
 
 # ------------------------------------------------------------------------
 
@@ -11,6 +12,7 @@ zantithesis = -1
 tfac = 1e3 # ms / sec
 pickkey = 'delrt'
 shotout = 'shotout.dat'
+error = 30.
 
 # ------------------------------------------------------------------------
 
@@ -18,7 +20,7 @@ infile = sys.argv[1]
 
 sys.stdout.write('Reading "%s"...\n'%(infile,))
 sys.stdout.flush()
-sf = SEGYFile(infile)
+sf = SEGYFile(infile, endian='Big')
 trh0 = sf.trhead[0]
 
 sys.stdout.write('Calculating scale factors...\n')
@@ -43,8 +45,8 @@ sys.stdout.flush()
 sf._calcEnsembles()
 
 ngathers = len(sf.ensembles)
-shotnums = sf.ensembles.keys()
-shotnums.sort()
+ordering = np.argsort(sf.ensembles.values())
+shotnums = np.array(sf.ensembles.keys())[ordering]
 
 sys.stdout.write('Writing output files...\n')
 sys.stdout.flush()
@@ -97,7 +99,6 @@ for i in xrange(ngathers):
         bounds[5] = rz
       
       stime = trhl[pickkey]
-      error = 0.
       if ((stime != 0) and (stime != 65535)):
         fp.write(format_string % (rx, ry, rz, stime/tfac, error/tfac, 1))
         shotactive[-1] += 1
