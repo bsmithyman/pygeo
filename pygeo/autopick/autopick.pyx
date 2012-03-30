@@ -81,7 +81,7 @@ def xcorval (traces, offset=10, medianlen=10):
   # Compute the envelope of the xcf and choose the centre
   shifts = _argsig(envelope(shifttr.astype(np.float32)), medianlen) - traces.shape[1]/2.
   
-  return _mf(shifts / offset, 3)
+  return _mf(shifts / offset, 3), shifttr
 
 def xcorvalize (traces, offrange, medianlen=10):
   x = np.zeros(len(traces))

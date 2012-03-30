@@ -2,7 +2,7 @@ import numpy as np
 import mmap
 import struct
 
-rlpad = 4
+rlpad = 8
 
 if (rlpad == 8):
   rlpak = 'Q'

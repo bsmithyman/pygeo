@@ -5,7 +5,7 @@ from scipy import *
 import scipy.interpolate as interpolate
 
 esmax = 960
-infile = 'line5-pass1.pic'
+infile = 'line5-goldstandard1.pic'
 
 f = open(infile, 'r')
 lines = f.readlines()
@@ -39,5 +39,5 @@ for shot in xrange(len(starts)):
     offs.append(float(offset)/10)
     times.append(float(time)/10)
 
-imshow(results)
-show()
+#imshow(results)
+#show()
