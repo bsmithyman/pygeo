@@ -44,6 +44,24 @@ class SEGYFileException(Exception):
 
 class SEGYTraceHeader (object):
 
+  class STHIter (object):
+    def __init__ (self, sth):
+      self.sth = sth
+      self.stop = len(sth)
+      self.index = 0
+
+    def next (self):
+      if (self.index >= self.stop):
+        raise StopIteration
+
+      else:
+        result = self.sth.__getitem__(self.index)
+        self.index += 1
+        return result
+
+  def __iter__ (self):
+    return self.STHIter(self)
+
   def __init__ (self, sf):
     self.sf = sf
 
@@ -53,15 +71,16 @@ class SEGYTraceHeader (object):
   def __getitem__ (self, index):
 
     if isinstance(index, slice):
-      indices = index.indices(len(self))
-      return [self.__getitem__(i) for i in range(*indices)]
+      indices = index.indices(self.sf.ntr)
+      return [self.__getitem__(i) for i in xrange(*indices)]
 
     sf = self.sf
     curloc = sf._fp.tell()
     sf._fp.seek(sf._calcHeadOffset(index+1, sf.ns))
 
-    traceheader = sf._fp.read(240)
-    traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
+    traceheader = sf._fp.read(180)
+
+    traceheader = _struct.unpack(TRHEADSTRUCT,traceheader)
     tracehead = {}
 
     for i, label in enumerate(TRHEADLIST):
@@ -187,25 +206,13 @@ class SEGYFile (object):
     # Determine length of each sample from FORMAT code
     self._getSamplen()
 
-    traceheaders = SEGYTraceHeader(self)
+    self.trhead = SEGYTraceHeader(self)
 
-    self._maybePrint('Read SEG-Y headers.\n\t%d traces present.\n' % (len(traceheaders)))
+    self._maybePrint('Read SEG-Y headers.\n\t%d traces present.\n' % (self.ntr))
 
-    self.trhead = traceheaders
     return
 
   # --------------------------------------------------------------------
-
-  def _calcDataOffset (self, trace, ns):
-    '''
-    Calculates the byte offset of the beginning of the data portion of a
-    seismic trace, given the trace number and the number of samples per.
-    '''
-
-    if (not self.isSU):
-      return 3200 + 400 + 240 + (ns*self.samplen + 240)*(trace-1)
-    else:
-      return 240 + (ns*4 + 240)*(trace-1)
 
   def _calcHeadOffset (self, trace, ns):
     '''
@@ -213,7 +220,18 @@ class SEGYFile (object):
     seismic trace, given the trace number and the number of samples per.
     '''
 
-    return self._calcDataOffset(trace, ns) - 240
+    if (not self.isSU):
+      return 3200 + 400 + (ns*self.samplen + 240)*(trace-1)
+    else:
+      return (ns*4 + 240)*(trace-1)
+
+  def _calcDataOffset (self, trace, ns):
+    '''
+    Calculates the byte offset of the beginning of the data portion of a
+    seismic trace, given the trace number and the number of samples per.
+    '''
+
+    return self._calcHeadOffset(trace, ns) + 240
 
   # --------------------------------------------------------------------
 
