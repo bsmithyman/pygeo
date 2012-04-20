@@ -20,23 +20,22 @@ void energyRatio (	float *inarr,
       totalEnergy = 0.;
 
       // Inner loop over all samples in the trace
-      for (j = 0; j < arrW; j++) {
+      for (j = 0; j < windowsize; j++) {
         pos = i*jsize + j;
         cursq = inarr[pos]*inarr[pos];
         totalEnergy += cursq;
-
-        // The total windowTotalEnergy is the totalEnergy right before the window output starts
-        if (j < windowsize) {
-          outarr[pos] = 0.;
-          windowTotalEnergy = totalEnergy;
-        // Then it begins removing the energy from before the window and adding the energy at the end of the window
-        } else {
-          windowTotalEnergy += cursq - inarr[pos - windowsize]*inarr[pos - windowsize];
-          // The result is output to the array in parallel
-          outarr[pos] = windowTotalEnergy / (totalEnergy + damp);
-        }
+        outarr[pos] = 0.;
+      }
+      // The total windowTotalEnergy is the totalEnergy right before the window output starts
+      windowTotalEnergy = totalEnergy;
+      for (j = windowsize; j < arrW; j++) {
+        pos = i*jsize + j;
+        cursq = inarr[pos]*inarr[pos];
+        totalEnergy += cursq;       // Then it begins removing the energy from before the window and adding the energy at the end of the window
+        windowTotalEnergy += cursq - inarr[pos - windowsize]*inarr[pos - windowsize];
+        // The result is output to the array in parallel
+        outarr[pos] = windowTotalEnergy / (totalEnergy + damp);
       } // End local for over j
-
     } // End parallel for over i
   } // End OMP parallel
 }

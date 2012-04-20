@@ -7,8 +7,13 @@ from scipy.fftpack import hilbert as _hilbert
 from scipy.ndimage import median_filter as _mf
 
 #np.import_array()
-
 ctypedef np.float32_t F32_t
+
+import pyopencl as cl
+import struct
+
+clfilename = 'filter.cl'
+
 
 # ------------------------------------------------------------------------
 # Configuration Options
@@ -100,3 +105,43 @@ def xcorvalize (traces, offrange, medianlen=10):
     y[i] = z
 
   return y
+
+def energyRatioCL (np.ndarray[F32_t, ndim=2] traces, Py_ssize_t windowsize=earwindow, double damp=eardamp):
+  '''
+  Generates a STA/LTA (Short-Term Average over Long-Term Average) filtered
+  result that highlights sharp increases in trace amplitude.
+  '''
+
+  cdef np.ndarray[F32_t, ndim=2] result
+  result = np.empty((traces.shape[0],traces.shape[1]), dtype=np.float32)
+
+  cdef Py_ssize_t arrL, arrW, strideL, strideW, jsize, global_size, local_size
+
+  arrL = traces.shape[0]
+  arrW = traces.shape[1]
+  strideL = traces.strides[0]
+  strideW = traces.strides[1]
+  jsize = strideL/4
+
+  ctx = cl.create_some_context()
+  queue = cl.CommandQueue(ctx)
+  mf = cl.mem_flags
+
+  with open(clfilename, 'r') as fp:
+    fstr = ''.join(fp.readlines())
+  program = cl.Program(ctx, fstr).build()
+
+  traces_buf = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=traces)
+  result_buf = cl.Buffer(ctx, mf.WRITE_ONLY, result.nbytes)
+
+  params = struct.pack('iiif', arrW, jsize, windowsize, damp)
+  params_buf = cl.Buffer(ctx, mf.READ_ONLY, len(params))
+  cl.enqueue_write_buffer(queue, params_buf, params).wait()
+
+  program.energyRatio(queue, (arrL,), None, traces_buf, result_buf, params_buf)
+  queue.finish()
+  
+  cl.enqueue_read_buffer(queue, result_buf, result).wait()
+
+  return result
+
