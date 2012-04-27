@@ -8,7 +8,7 @@ datum = (0.,0.,0.)
 outfiles = ['shotgeom.txt', 'recgeom.txt']
 
 forma = '%8d % 10.5E % 10.5E % 10.5E %7.3f\n'
-zantithesis=1
+zantithesis=-1
 
 infile = sys.argv[1]
 
@@ -29,7 +29,7 @@ if (trh0['scalel'] < 0):
 else:
   scalel = trh0['scalel']
 
-rectrh = np.array([(float(trh['gx']),float(trh['gy']),float(trh['gelev'])) for trh in sf.trhead[:755]], dtype=np.float32)*scalco
+rectrh = np.array([(float(trh['gx']),float(trh['gy']),zantithesis*float(trh['gelev'])) for trh in sf.trhead[:755]], dtype=np.float32)*scalco
 
 reclines = []
 for i in xrange(len(rectrh)):
