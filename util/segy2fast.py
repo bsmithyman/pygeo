@@ -115,7 +115,7 @@ for i in xrange(ngathers):
     sy = trhl0['sy'] * scalco
     sz = trhl0['selev'] * scalel * zantithesis
 
-    (nsx, nsy, nsz) = reduceToLocal(np.array([sx,sy,sz]), angle, basis)
+    (nsx, nsy, nsz) = reduceToLocal(np.array([sx,sy,sz],ndmin=2), angle, basis)[0]
 
     # Append information about this shot to the running tally of all shot
     # locations; this is used to construct f.in
@@ -140,7 +140,7 @@ for i in xrange(ngathers):
       ry = trhl['gy'] * scalco
       rz = trhl['gelev'] * scalel * zantithesis
 
-      (nrx, nry, nrz) = reduceToLocal(np.array([rx,ry,rz]), angle, basis)
+      (nrx, nry, nrz) = reduceToLocal(np.array([rx,ry,rz],ndmin=2), angle, basis)[0]
 
       if (nrx < bounds[0]):
         bounds[0] = nrx
