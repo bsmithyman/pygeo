@@ -14,14 +14,7 @@ VERSION = '%prog v1.1\n'
 DESCRIPTION = 'Exports a series of FAST pick datafiles based on SEG-Y headers.'
 USAGE = '%prog [options] segy_file'
 
-
 format_string = '%10.3f%10.3f%10.3f%10.3f%10.3f%3d\n'
-unit = 1e3 # kilometres
-zantithesis = -1
-tfac = 1e3 # ms / sec
-pickkey = 'delrt'
-shotout = 'shotout.dat'
-error = 30.
 
 # ------------------------------------------------------------------------
 
@@ -35,11 +28,34 @@ parser.add_option('-b', '--basis', action='store', dest='basis',
 parser.add_option('-a', '--angle', action='store', dest='angle',
 		help='angle in degrees for coordinate rotation [%default]')
 
-parser.set_defaults(	basis = '0.,0.,0.',
-			angle = '0.')
+parser.add_option('-k', '--key', action='store', dest='key',
+		help='trace header id for first-arrival picks [%default]')
+
+parser.add_option('-u', '--unit', action='store', dest='unit',
+		help='spatial unit [%default]')
+
+parser.add_option('-z', '--zdir', action='store', dest='zdir',
+		help='coord. system z-scaling [%default]')
+
+parser.add_option('-t', '--tfac', action='store', dest='tfac',
+		help='temporal unit [%default]')
+
+parser.add_option('-s', '--shotout', action='store', dest='shotout',
+		help='filename for shot geometry information (for f.in) [%default]')
+
+parser.add_option('-e', '--error', action='store', dest='error',
+		help='uniform data error [%default]')
+
+parser.set_defaults(	basis	= '0.,0.,0.',
+			angle	= '0.',
+			key	= 'delrt',
+			unit	= '1e3',
+			zdir	= '-1',
+			tfac	= '1e3',
+			shotout	= 'shotout.dat',
+			error	= '30.')
 
 (options, args) = parser.parse_args()
-
 
 if (len(args) < 1):
   parser.error('Please specify a SEG-Y file!')
@@ -54,6 +70,13 @@ angle = np.float(options.angle)*np.pi/180.
 # Convert basis to array
 basis = np.array([np.float(item) for item in options.basis.strip().split(',')])
 
+pickkey = options.key
+
+unit = np.float(options.unit)
+zantithesis = np.float(options.zdir)
+tfac = np.float(options.tfac)
+shotout = options.shotout
+error = np.float(options.error)
 
 # Open SEG-Y file and get first trace header
 sys.stdout.write('Reading "%s"...\n'%(infile,))
