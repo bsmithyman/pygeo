@@ -20,7 +20,7 @@ parser.set_defaults(	dims = None)
 
 (options, args) = parser.parse_args()
 
-if (len(args < 2)):
+if (len(args) < 2):
   parser.print_help()
   exit(0)
 
@@ -33,5 +33,5 @@ else:
   dims = [int(item) for item in options.dims.strip().split(',')]
 
 velmodel = readfast(infile, dims).copy(order='F')
-with open(modelout, 'w') as fp:
+with open(outfile, 'w') as fp:
   fp.write(velmodel)
