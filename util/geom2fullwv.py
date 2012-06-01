@@ -2,6 +2,7 @@
 
 import numpy as np
 from pygeo.segyread import SEGYFile
+from pygeo.coord import reduceToLocal
 import sys
 from optparse import OptionParser
 
