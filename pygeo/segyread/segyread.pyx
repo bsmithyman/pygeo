@@ -27,6 +27,7 @@ TRHEADLIST = ['tracl','tracr','fldr','tracf','ep','cdp','cdpt','trid','nvs',
              'nofilf','nofils','lcf','hcf','lcs','hcs','year','day','hour','minute','sec',
              'timbas','trwf','grnors','grnofr','grnlof','gaps','otrav']
 
+BHEADSTRUCT = '>3L24H'
 TRHEADSTRUCT = '>7L4H8L2h4L46H'
 
 MAJORHEADERS = [1,2,3,4,7,38,39]
@@ -179,7 +180,7 @@ class SEGYFile (object):
       textheader = self._fp.read(3200).replace(' ','\x25').decode('IBM500')
       blockheader = self._fp.read(400)
 
-      blockheader = _struct.unpack('>3L24H',blockheader[:60])
+      blockheader = _struct.unpack(BHEADSTRUCT,blockheader[:60])
       bhead = {}
 
       for i, label in enumerate(BHEADLIST):
@@ -540,7 +541,7 @@ class SEGYFile (object):
 
     fp.write(thead.encode('IBM500')[:3200])
     
-    bheadbin = _struct.pack('>3L24H', *[bhead[key] for key in BHEADLIST]) + '\x00' * 340
+    bheadbin = _struct.pack(BHEADSTRUCT, *[bhead[key] for key in BHEADLIST]) + '\x00' * 340
 
     fp.write(bheadbin)
 

@@ -4,7 +4,7 @@ from pygeo.segyread import SEGYFile
 import pylab
 import sys
 
-infile = '/spin/seisdata/line15-postpick.sgy'
+infile = '/mnt/smaug/seisdata/line5-postpick.sgy'#'/spin/seisdata/line15-postpick.sgy'
 
 def printnow (text):
   sys.stdout.write(text + '\n')

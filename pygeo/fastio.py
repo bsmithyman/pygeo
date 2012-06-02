@@ -2,12 +2,12 @@ import numpy as np
 import mmap
 import struct
 
-rlpad = 8
+rlpad = 4
 
 if (rlpad == 8):
   rlpak = 'Q'
 elif (rlpad == 4):
-  rlpak = 'L'
+  rlpak = 'I'
 else:
   raise FIOUnrecognizedRecordLength
 
@@ -108,3 +108,18 @@ def readPicks (filename):
   errors = block[1:,4]
 
   return {'sc': sourcecoords, 'rc': reccoords, 't': times, 'e': errors}
+
+# ----------------------------------------------------------------------
+def getParams (filename = 'for.header'):
+  with open(filename, 'r') as fp:
+    res = fp.read()
+
+  res = res.strip().split()
+  paramdict = {}
+  paramdict['x'] = [float(item) for item in res[0:2]]
+  paramdict['y'] = [float(item) for item in res[2:4]]
+  paramdict['z'] = [float(item) for item in res[4:6]]
+  paramdict['dx'] = float(res[6])
+  paramdict['dims'] = [int(item) for item in res[7:10]]
+
+  return paramdict

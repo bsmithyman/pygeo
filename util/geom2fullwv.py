@@ -102,20 +102,19 @@ shotnums = np.array(sf.ensembles.keys())[ordering]
 # Assume that SEG-Y file is set up for position-consistent receivers
 nrecs = sf.ensembles[shotnums[1]]
 
-rectrh = np.array([(float(trh['gx']),float(trh['gy']),zantithesis*float(trh['gelev'])) for trh in sf.trhead[:nrecs]], dtype=np.float32)*scalco
-nrectrh = reduceToLocal(rectrh, angle, basis)
+rectrh = np.array([(float(trh['gx'])*scalco,float(trh['gy'])*scalco,zantithesis*float(trh['gelev'])*scalel) for trh in sf.trhead[:nrecs]], dtype=np.float32)
+newrectrh = reduceToLocal(rectrh, angle, basis)
 
 reclines = []
 for i in xrange(len(rectrh)):
-  reclines.append(output_format%(i+1,rectrh[i,0] - basis[0],rectrh[i,1] - basis[1],rectrh[i,2] - basis[2],1.))
+  reclines.append(output_format%(i+1,newrectrh[i,0],newrectrh[i,1],newrectrh[i,2],1.))
+
+shottrh = np.array([(float(trh['sx'])*scalco,float(trh['sy'])*scalco,zantithesis*float(trh['selev'])*scalel) for trh in [sf.trhead[sf.ensembles[sn]] for sn in shotnums]])
+newshottrh = reduceToLocal(shottrh, angle, basis)
 
 shotlines = []
 for i in xrange(ngathers):
-  trhl0 = sf.trhead[sf.ensembles[shotnums[i]]]
-  sx = trhl0['sx'] * scalco
-  sy = trhl0['sy'] * scalco
-  sz = trhl0['selev'] * scalel * zantithesis
-  shotlines.append(output_format%(i+1,sx - basis[0],sy - basis[1],sz - basis[2],1.))
+  shotlines.append(output_format%(i+1,newshottrh[i,0],newshottrh[i,1],newshottrh[i,2],1.))
 
 with open(shotout, 'w') as fp:
   fp.writelines(shotlines)
