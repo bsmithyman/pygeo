@@ -18,3 +18,12 @@
 # along with pygeo.  If not, see <http://www.gnu.org/licenses/>.
 
 # ----------------------------------------------------------------------
+
+'''
+.. module:: pygeo
+  :platform: Unix
+  :synopsis: A distribution of tools for managing geophysical data.
+
+.. moduleauthor:: Brendan Smithyman <bsmithyman@eos.ubc.ca>
+
+'''

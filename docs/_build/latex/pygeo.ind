@@ -1,0 +1,32 @@
+\begin{theindex}
+\def\bigletter#1{{\Large\sffamily#1}\nopagebreak\vspace{1mm}}
+
+  \bigletter {Symbols}
+  \item \_\_getitem\_\_() (pygeo.segyread.SEGYFile method), \hyperpage{4}
+  \item \_\_getitem\_\_() (pygeo.segyread.SEGYTraceHeader method), \hyperpage{5}
+
+  \indexspace
+  \bigletter F
+  \item findTraces() (pygeo.segyread.SEGYFile method), \hyperpage{4}
+
+  \indexspace
+  \bigletter P
+  \item pygeo.segyread (module), \hyperpage{3}
+
+  \indexspace
+  \bigletter R
+  \item readTraces() (pygeo.segyread.SEGYFile method), \hyperpage{4}
+
+  \indexspace
+  \bigletter S
+  \item SEGYFile (class in pygeo.segyread), \hyperpage{3}
+  \item SEGYTraceHeader (class in pygeo.segyread), \hyperpage{5}
+  \item sNormalize() (pygeo.segyread.SEGYFile method), \hyperpage{4}
+
+  \indexspace
+  \bigletter W
+  \item writeFlat() (pygeo.segyread.SEGYFile method), \hyperpage{4}
+  \item writeSEGY() (pygeo.segyread.SEGYFile method), \hyperpage{4}
+  \item writeSU() (pygeo.segyread.SEGYFile method), \hyperpage{5}
+
+\end{theindex}
