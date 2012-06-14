@@ -19,6 +19,15 @@
 
 # ----------------------------------------------------------------------
 
+'''
+.. module:: pygeo.segyread
+   :platform: Unix
+   :synopsis: Provides an interface for interacting with SEG-Y files.
+
+.. moduleauthor:: Brendan Smithyman <bsmithyman@eos.ubc.ca>
+
+'''
+
 try:
   import pyximport
   pyximport.install()

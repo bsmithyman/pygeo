@@ -43,6 +43,7 @@ TRHEADLIST = ['tracl','tracr','fldr','tracf','ep','cdp','cdpt','trid','nvs',
              'nofilf','nofils','lcf','hcf','lcs','hcs','year','day','hour','minute','sec',
              'timbas','trwf','grnors','grnofr','grnlof','gaps','otrav']
 
+BHEADSTRUCT = '>3L24H'
 TRHEADSTRUCT = '>7L4H8L2h4L46H'
 
 MAJORHEADERS = [1,2,3,4,7,38,39]
@@ -59,6 +60,14 @@ class SEGYFileException(Exception):
     return repr(self.parameter)
 
 class SEGYTraceHeader (object):
+  '''
+  Provides read access to trace headers from an existing :py:class:`SEGYFile` instance.
+  
+  :param sf: Parent class to attach to.
+  :param sf: :py:class:`SEGYFile`
+
+  :returns: :py:class:`SEGYTraceHeader` instance
+  '''
 
   class STHIter (object):
     def __init__ (self, sth):
@@ -85,6 +94,15 @@ class SEGYTraceHeader (object):
     return self.sf.ntr
 
   def __getitem__ (self, index):
+    '''
+    Returns dictionary (or list of dictionaries) that maps header information
+    for each defined SEG-Y trace header.  SU style names, see TRHEADLIST.
+
+    :param index: Slice object or trace number (using zero-based numbering).
+    :type traces: slice object
+
+    :returns: dict, list
+    '''
 
     if isinstance(index, slice):
       indices = index.indices(self.sf.ntr)
@@ -109,6 +127,32 @@ class SEGYTraceHeader (object):
 class SEGYFile (object):
   '''
   Provides read access to a SEG-Y dataset (headers and data).
+
+  :param filename: The system path of the SEG-Y file to open.
+  :type filename: str
+  :param verbose: Controls whether diagnostic information is printed.  This includes status messages when endian and format conversions are made, and may be useful in diagnosing problems.
+  :type verbose: bool
+  :param majorheadersonly: Only read certain specific headers (legacy).  No longer relevant, but may be expected by some old programs.
+  :type majorheadersonly: bool
+  :param isSU: Controls whether SEGYFile treats the datafile as a Seismic Unix variant SEG-Y file.  This overrides assumptions for endianness and format, and presumes the absence of the 3200-byte text header and 400-byte binary header.
+  :type isSU: bool
+  :param endian: Allows specification of file endianness [Foreign,Native,Little,Big].  By default this is auto-detected using a heuristic method, but it will fail for e.g., SEG-Y files that contain all zeros, or very noisy data.
+  :type endian: str
+  :param usemmap: Controls whether memory-mapped I/O is used. Default True.  In most (all?) cases this should be more efficient, and will be disabled automatically if not supported.
+  :type usemmap: bool
+
+  :returns: SEGYFile instance
+
+  :var thead: *str* -- contains an ASCII-encoded translation of the EBCDIC 3200-byte tape header. 
+  :var bhead: *dict* -- contains key:value pairs describing the data in the 400-byte binary reel header.
+  :var trhead: :py:class:`SEGYTraceHeader` instance -- acts like a list of all the trace headers.  Individual items each return a dictionary that contains key:value pairs describing the data in the trace header.
+  :var endian: *str* -- describing the endian of the datafile.
+  :var mendian: *str* -- autodetected machine endian.
+  :var ns: *int* -- number of samples in each trace.
+  :var ntr: *int* -- number of traces in dataset.
+  :var filesize: *int* -- size of datafile in bytes.
+  :var ensembles: *dict* -- only exists if the experimental function :py:func:`SEGYFile._calcEnsembles` is called.  Maps shot gather numbers to trace numbers.  *Experimental*
+
   '''
 
   filename = None
@@ -124,7 +168,6 @@ class SEGYFile (object):
   thead = None
   bhead = None
   trhead = None
-  ntr = None
   ensembles = None
   initialized = False
   filesize = 0
@@ -195,7 +238,7 @@ class SEGYFile (object):
       textheader = self._fp.read(3200).replace(' ','\x25').decode('IBM500')
       blockheader = self._fp.read(400)
 
-      blockheader = _struct.unpack('>3L24H',blockheader[:60])
+      blockheader = _struct.unpack(BHEADSTRUCT,blockheader[:60])
       bhead = {}
 
       for i, label in enumerate(BHEADLIST):
@@ -284,6 +327,15 @@ class SEGYFile (object):
     '''
     Returns trace data as a list of numpy arrays (i.e. non-adjacent trace
     numbers are allowed). Requires that traces be fixed length.
+
+    :param traces: List of traces to return, using 1-based trace numbering.  Optional; if omitted, all traces are returned.
+    :type traces: list, None
+
+    :returns: ndarray -- 2D array containing (possibly non-adjacent) seismic traces
+
+    .. versionchanged:: devel
+    This is now a legacy interface, and is superseded by the __getitem__
+    interface, which uses standard Python slice notation.
     '''
 
     if (traces == None):
@@ -295,6 +347,15 @@ class SEGYFile (object):
       return _np.array([self.__getitem__(trace-1) for trace in traces], dtype=_np.float32)
 
   def __getitem__ (self, index):
+    '''
+    Returns traces from the open seismic dataset, with support for standard
+    Python slice notation.  Trace numbers are zero-based.
+
+    :param index: Slice object or trace number (using zero-based numbering).
+    :type traces: slice object
+
+    :returns: ndarray -- 2D array containing (possibly non-adjacent) seismic traces
+    '''
 
     if isinstance(index, slice):
       indices = index.indices(len(self))
@@ -378,29 +439,18 @@ class SEGYFile (object):
 
   # --------------------------------------------------------------------
 
-  def lockTraces (self, traces):
-    '''
-    Returns trace data as a list of memory-mapped array-like objects.
-    Otherwise similar to readTraces.
-    '''
-
-    ns = self.ns
-
-    result = []
-
-    if not _np.iterable(traces):
-      traces = [traces]
-
-    for trace in traces:
-      tracetemp = _np.memmap(self.filename, 'float32', 'c', 
-                         offset=self._calcDataOffset(trace, ns)/4, shape=(ns,))
-      result.append(tracetemp)
-
-    return result
-
-  # --------------------------------------------------------------------
-
   def findTraces (self, key, kmin, kmax):
+    '''
+    Finds traces whose header values fall within a particular range.  Trace numbers are 1-based, i.e., for use with readTraces.
+
+    :param key: Key value of trace header to scan (uses lower-case SU names; see TRHEADLIST.
+    :type key: str
+    :param kmin: Minimum key value (inclusive).
+    :type kmin: int
+    :param kmax: Maximum key value (inclusive).
+    :type kmax: int
+    '''
+
     if not self.trhead[0].has_key(key):
       raise self.SEGYFileException('Invalid trace header: %s'%key)
 
@@ -415,6 +465,12 @@ class SEGYFile (object):
   # --------------------------------------------------------------------
 
   def _calcEnsembles (self):
+    '''
+    Prototype interface for calculating ensemble boundaries (currently hard-coded to find shot gathers).
+
+    *Experimental*
+    '''
+
     self.ensembles = {}
 
     self._maybePrint('Scanning ensembles...')
@@ -512,6 +568,15 @@ class SEGYFile (object):
   # --------------------------------------------------------------------
 
   def sNormalize (self, traces):
+
+    '''
+    Utility function that takes seismic traces and returns an amplitude
+    normalized version.
+
+    :param traces: List or array of traces to normalize.
+    :type traces: ndarray, list
+    '''
+
     if not _np.iterable(traces):
       traces = [traces]
 
@@ -522,6 +587,15 @@ class SEGYFile (object):
   # --------------------------------------------------------------------
 
   def writeFlat (self, outfilename):
+    '''
+    Outputs seismic traces as a flat file in IEEE floating point and
+    native endian.
+
+    :param outfilename: Filename for new flat datafile.
+    :type outfilename: str
+
+    *Experimental*
+    '''
 
     ntraces = len(self.trhead)
 
@@ -538,6 +612,17 @@ class SEGYFile (object):
   # --------------------------------------------------------------------
 
   def writeSEGY (self, outfilename, traces, headers=None):
+    '''
+    Outputs seismic traces in a new SEG-Y file, optionally using the headers
+    from the existing dataset.
+
+    :param outfilename: Filename for new SEG-Y datafile.
+    :type outfilename: str
+    :param traces: Array of seismic traces to output.
+    :type traces: ndarray, list
+    :param headers: List of three headers: [thead, bhead, trhead].  If omitted, the existing headers in the SEGYFile instance are used. *thead* is an ASCII-formatted 3200-byte text header. *bhead* is a list of binary header values similar to SEGYFile.bhead.  *trhead* is a list or list-like object of trace header values.
+    :type headers: list, None
+    '''
 
     if (headers == None):
       thead=self.thead
@@ -554,7 +639,7 @@ class SEGYFile (object):
 
     fp.write(thead.encode('IBM500')[:3200])
     
-    bheadbin = _struct.pack('>3L24H', *[bhead[key] for key in BHEADLIST]) + '\x00' * 340
+    bheadbin = _struct.pack(BHEADSTRUCT, *[bhead[key] for key in BHEADLIST]) + '\x00' * 340
 
     fp.write(bheadbin)
 
@@ -569,6 +654,17 @@ class SEGYFile (object):
   # --------------------------------------------------------------------
 
   def writeSU (self, outfilename, traces, trhead=None):
+    '''
+    Outputs seismic traces in a new CWP SU file, optionally using the headers
+    from the existing dataset.
+
+    :param outfilename: Filename for new SU datafile.
+    :type outfilename: str
+    :param traces: Array of seismic traces to output.
+    :type traces: ndarray, list
+    :param trhead: List or list-like object of trace header values.  If omitted, the existing headers in the SEGYFile instance are used.
+    :type trhead: list, None
+    '''
 
     if (trhead == None):
       trhead=self.trhead
