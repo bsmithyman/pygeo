@@ -57,6 +57,9 @@ if (options.normalize):
 if (options.verbose):
   print('Generating output file.')
 
+if (len(intr.shape) == 1):
+    intr = [intr]
+
 sf.writeSU(outfile, intr, sf.trhead)
 
 if (options.verbose):
