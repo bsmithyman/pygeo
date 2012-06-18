@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.5.24)  15 JUN 2012 17:26
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=pdflatex 2012.5.24)  18 JUN 2012 13:18
 entering extended mode
  %&-line parsing enabled.
 **pygeo.tex
@@ -934,7 +934,7 @@ LaTeX Warning: There were multiply-defined labels.
 Here is how much of TeX's memory you used:
  7933 strings out of 493848
  107222 string characters out of 1152823
- 194322 words of memory out of 3000000
+ 194320 words of memory out of 3000000
  10981 multiletter control sequences out of 15000+50000
  50100 words of font info for 58 fonts, out of 3000000 for 9000
  715 hyphenation exceptions out of 8191
@@ -946,7 +946,7 @@ fb></usr/share/texmf-texlive/fonts/type1/urw/helvetic/uhvbo8a.pfb></usr/share/t
 exmf-texlive/fonts/type1/urw/helvetic/uhvr8a.pfb></usr/share/texmf-texlive/font
 s/type1/urw/times/utmb8a.pfb></usr/share/texmf-texlive/fonts/type1/urw/times/ut
 mr8a.pfb></usr/share/texmf-texlive/fonts/type1/urw/times/utmri8a.pfb>
-Output written on pygeo.pdf (15 pages, 117842 bytes).
+Output written on pygeo.pdf (15 pages, 118151 bytes).
 PDF statistics:
  187 PDF objects out of 1000 (max. 8388607)
  34 named destinations out of 1000 (max. 500000)
