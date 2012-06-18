@@ -1,0 +1,30 @@
+2012-06-18	Brendan Smithyman	<bsmithyman@eos.ubc.ca>
+
+Tagging v1.2
+
+* Massive update from devel
+* New interfaces on pygeo.segyread (see below)
+* Several new submodules (some more in branches/devel)
+* Large number of new utility codes
+
+pygeo.segyread
+~~~~~~~~~~~~~~
+
+- Updated to include Cython automatic compilation; falls back to non-Cython version in the case of failed compilation or if Cython is not present
+  -- In the future this will be useful for implementing things like IBM -> IEEE conversion in parallel C
+
+- Now uses __getitem__ interface for managing SEGYFile data; iterable and sliceable
+
+- Far superior memory handling via use of SEGYTraceHeader class that loads headers on the fly (i.e., no more eating up 20 GB of RAM when loading a big file)
+
+- Improvements to handling of memory-mapped I/O and fallback I/O (should be automatic)
+  -- Untested, but this should work on Windows even though the memory-mapping interface is different (using fallback I/O)
+
+Added several submodules
+------------------------
+
+pygeo.coord: Useful functions for coordinate transformations
+pygeo.testing: Useful functions for resolution/parameter testing
+pygeo.dipfilt: Code from testing conducted about a year ago; dip filtering algorithms implemented in Cython.  May or may not be useful.
+
+Some other submodules in branches/devel, but these are not stable.
