@@ -20,10 +20,23 @@
 # ----------------------------------------------------------------------
 
 '''
-.. module:: pygeo
-  :platform: Unix
-  :synopsis: A distribution of tools for managing geophysical data.
+.. module:: pygeo.segyread
+   :platform: Unix
+   :synopsis: Provides an interface for interacting with SEG-Y files.
 
 .. moduleauthor:: Brendan Smithyman <bsmithyman@eos.ubc.ca>
 
 '''
+
+try:
+  import pyximport
+  pyximport.install()
+except:
+  print('Cython import failed; pygeo.segyread will use the legacy (pure Python) mode.')
+  from segyreadold import *
+else:
+  try:
+    from segyread import *
+  except ImportError:
+    print('Could not build/import segyread.pyx; pygeo.segyread will use the legacy (pure Python) mode.')
+    from segyreadold import *

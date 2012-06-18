@@ -19,11 +19,7 @@
 
 # ----------------------------------------------------------------------
 
-'''
-.. module:: pygeo
-  :platform: Unix
-  :synopsis: A distribution of tools for managing geophysical data.
-
-.. moduleauthor:: Brendan Smithyman <bsmithyman@eos.ubc.ca>
-
-'''
+def make_ext (modname, pyxfilename):
+  from distutils.extension import Extension
+  import numpy
+  return Extension(name = modname, sources = [pyxfilename], include_dirs = [numpy.get_include()], depends=[], extra_compile_args=['-w'])

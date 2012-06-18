@@ -19,16 +19,16 @@
 
 # ----------------------------------------------------------------------
 
-from scipy import zeros, array, int16, int64, float32, linspace
-from mmap import *
-from struct import *
+import numpy as np
+import mmap
+import struct
 
-rlpad = 8
+rlpad = 4
 
 if (rlpad == 8):
   rlpak = 'Q'
 elif (rlpad == 4):
-  rlpak = 'L'
+  rlpak = 'I'
 else:
   raise FIOUnrecognizedRecordLength
 
@@ -41,14 +41,14 @@ def readfast (filename, dims):
   (nx, ny, nz) = dims
 
   fp = open(filename, 'rb')
-  map = mmap(fp.fileno(), 0, flags=MAP_PRIVATE)
+  map = mmap.mmap(fp.fileno(), 0, flags=mmap.MAP_PRIVATE)
 
-  vol = zeros(dims, dtype=int16)
+  vol = np.zeros(dims, dtype=np.int16)
   for k in range(nz):
     for j in range(ny):
       bytestart = k*ny*(2*rlpad+2*nx) + j*(2*rlpad+2*nx)
-      entries = unpack('%dH'%(nx,), map[bytestart+rlpad:bytestart+rlpad+nx*2])
-      vol[:,j,k] = array(entries)
+      entries = struct.unpack('%dH'%(nx,), map[bytestart+rlpad:bytestart+rlpad+nx*2])
+      vol[:,j,k] = np.array(entries)
 
   map.close()
   fp.close()
@@ -62,13 +62,13 @@ def writefast (filename, model):
   '''
 
   (nx, ny, nz) = model.shape
-  rmark = pack(rlpak, int64(nx*2))
+  rmark = struct.pack(rlpak, np.int64(nx*2))
 
   fp = open(filename, 'wb')
 
   for k in range(nz):
     for j in range(ny):
-      outstring = pack('%dH'%(nx,), *list(model[:,j,k]))
+      outstring = struct.pack('%dH'%(nx,), *list(model[:,j,k]))
       fp.write(rmark)
       fp.write(outstring)
       fp.write(rmark)
@@ -84,12 +84,12 @@ def readbath (filename, dims):
   (nx, ny, nz) = dims
 
   fp = open(filename, 'rb')
-  map = mmap(fp.fileno(), 0, flags=MAP_PRIVATE)
+  map = mmap.mmap(fp.fileno(), 0, flags=mmap.MAP_PRIVATE)
 
-  bathy = zeros(dims[:2], dtype=float32)
+  bathy = np.zeros(dims[:2], dtype=np.float32)
   for j in range(ny):
     bytestart = j*(4*nx+2*rlpad)
-    bathy[:,j] = array(unpack('%df'%(nx,), map[bytestart+rlpad:bytestart+rlpad+4*nx]))
+    bathy[:,j] = np.array(struct.unpack('%df'%(nx,), map[bytestart+rlpad:bytestart+rlpad+4*nx]))
 
   map.close()
   fp.close()
@@ -103,7 +103,7 @@ def restorebath (modeltop, modelbottom, bathymetry, dims, bounds):
   '''
 
   (nx, ny, nz) = dims
-  zspace = linspace(bounds[2][0],bounds[2][1],dims[2])
+  zspace = np.linspace(bounds[2][0],bounds[2][1],dims[2])
   
   result = modelbottom.copy()
   
@@ -114,3 +114,33 @@ def restorebath (modeltop, modelbottom, bathymetry, dims, bounds):
           result[i,j,k] = modeltop[i,j,k]
       #result[i,j,:] = [v for v in modeltop[i,j,:] if 
   return result
+
+# ----------------------------------------------------------------------
+def readPicks (filename):
+
+  with open(filename, 'r') as fp:
+    lines = fp.readlines()
+
+  block = np.array([[float(item) for item in line.strip().split()] for line in lines])
+
+  sourcecoords = block[0,:3]
+  reccoords = block[1:,:3]
+  times = block[1:,3]
+  errors = block[1:,4]
+
+  return {'sc': sourcecoords, 'rc': reccoords, 't': times, 'e': errors}
+
+# ----------------------------------------------------------------------
+def getParams (filename = 'for.header'):
+  with open(filename, 'r') as fp:
+    res = fp.read()
+
+  res = res.strip().split()
+  paramdict = {}
+  paramdict['x'] = [float(item) for item in res[0:2]]
+  paramdict['y'] = [float(item) for item in res[2:4]]
+  paramdict['z'] = [float(item) for item in res[4:6]]
+  paramdict['dx'] = float(res[6])
+  paramdict['dims'] = [int(item) for item in res[7:10]]
+
+  return paramdict
