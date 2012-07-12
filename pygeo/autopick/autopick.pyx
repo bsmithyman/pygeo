@@ -32,6 +32,7 @@ ctypedef np.float32_t F32_t
 
 import pyopencl as cl
 import struct
+import os
 
 clfilename = 'filter.cl'
 
@@ -148,7 +149,7 @@ def energyRatioCL (np.ndarray[F32_t, ndim=2] traces, Py_ssize_t windowsize=earwi
   queue = cl.CommandQueue(ctx)
   mf = cl.mem_flags
 
-  with open(clfilename, 'r') as fp:
+  with open(os.path.split(__file__)[0] + '/' + clfilename, 'r') as fp:
     fstr = ''.join(fp.readlines())
   program = cl.Program(ctx, fstr).build()
 
