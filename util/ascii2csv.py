@@ -27,11 +27,6 @@ import glob
 import multiprocessing
 import sys
 
-dims = (301,501,61)
-modelfile = 'vel.mod'
-modelout = 'velmod.raw'
-hcfile = 'num.cell'
-hcout = 'numcell.raw'
 residout = 'resids.csv'
 origfilewc = '*.ascii'
 calcfilewc = '*.calcascii'
