@@ -68,18 +68,18 @@ ncomap = matplotlib.colors.LinearSegmentedColormap('seismic', cdictn, 256)
 bcomap = matplotlib.colors.LinearSegmentedColormap('seiscomp', cdictb, 256)
 nvmi = 1500.
 nvma = 7000.
-bvm = 1200.
+bvm = 1000.
 asr = 1
-aext = (0.,45.,-2.,2.)
+aext = (-0.,45.,-2.,2.)
 
 # ----------------------------------------------------------------------
-sstart = SEGYFile('line10.vp.start')
+sstart = SEGYFile('line10.vp.start', endian='Big')
 mstart = sstart.readTraces().T
 
-snew = SEGYFile('line10.vp')
+snew = SEGYFile('line10.vp', endian='Big')
 mnew = snew.readTraces().T
 
-sqp = SEGYFile('line10.qp')
+sqp = SEGYFile('line10.qp', endian='Big')
 mqp = sqp.readTraces().T
 
 # ----------------------------------------------------------------------
