@@ -582,7 +582,7 @@ class SEGYFile (object):
 
     self._maybePrint('Normalizing each trace to unit amplitude.\n')
 
-    return _np.array([2*(trace - trace.min())/max(trace.max(),abs(trace.min())) - 1 for trace in traces])
+    return _np.array([trace/max(abs(trace.max()),abs(trace.min())) for trace in traces])
 
   # --------------------------------------------------------------------
 
