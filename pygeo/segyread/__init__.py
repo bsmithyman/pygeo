@@ -36,7 +36,7 @@ except:
   from segyreadold import *
 else:
   try:
-    from segyread import *
+    from segyread import SEGYFile
   except ImportError:
     print('Could not build/import segyread.pyx; pygeo.segyread will use the legacy (pure Python) mode.')
-    from segyreadold import *
+    from segyreadold import SEGYFile
