@@ -24,6 +24,7 @@ import os.path as _path
 import mmap as _mmap
 import struct as _struct
 import sys as _sys
+import copy as _copy
 
 import numpy as _np
 cimport numpy as _np
@@ -51,6 +52,41 @@ BHEADSTRUCT = '>3L24H'
 TRHEADSTRUCT = '>7L4H8L2h4L46H'
 
 MAJORHEADERS = [1,2,3,4,7,38,39]
+
+# ------------------------------------------------------------------------
+# Functions
+
+cdef extern from "Python.h":
+    char *PyString_AsString(object)
+
+cdef extern void c_ibm2ieee "ibm2ieee" (char *outarr, char *inarr, Py_ssize_t len)
+
+cdef ibm2ieee (str trace):
+
+  cdef Py_ssize_t arrL = len(trace) / 4
+
+  cdef str result = _copy.copy(trace)
+  cdef char *outarr = PyString_AsString(result)
+  cdef char *inarr = PyString_AsString(trace)
+
+  c_ibm2ieee(outarr, inarr, arrL)
+  return result
+
+cdef extern void c_ieee2ibm "ibm2ieee" (char *outarr, char *inarr, Py_ssize_t len)
+
+cdef ieee2ibm (str trace):
+
+  cdef Py_ssize_t arrL = len(trace) / 4
+
+  cdef str result = _copy.copy(trace)
+  cdef char *outarr = PyString_AsString(result)
+  cdef char *inarr = PyString_AsString(trace)
+
+  c_ieee2ibm(outarr, inarr, arrL)
+  return result
+
+# ------------------------------------------------------------------------
+
 
 class SEGYFileException(Exception):
   '''
@@ -177,23 +213,6 @@ class SEGYFile (object):
   filesize = 0
   ns = 0
   ntr = 0
-
-  # --------------------------------------------------------------------
-
-  # Written by Robert Kern on the SciPy-user mailing list.
-  def _ibm2ieee (self, ibm):
-    """ Converts an IBM floating point number into IEEE format. """
-
-    sign = ibm >> 31 & 0x01
-
-    exponent = ibm >> 24 & 0x7f
-
-    mantissa = ibm & 0x00ffffff
-    mantissa = (mantissa * 1.0) / 2**24
-
-    ieee = (1 - 2 * sign) * mantissa * 16.0**(exponent - 64)
-
-    return ieee
 
   # --------------------------------------------------------------------
 
@@ -391,7 +410,7 @@ class SEGYFile (object):
           self._maybePrint('             ...converting from IBM floating point.\n')
         for trace in traces:
           self._fp.seek(self._calcDataOffset(trace+1, ns))
-          tracetemp = _struct.pack('%df'%(ns,),*[self._ibm2ieee(item) for item in _struct.unpack('>%dL'%(ns,),self._fp.read(ns*4))])
+          tracetemp = ibm2ieee(self._fp.read(ns*4))
           result.append(_np.array(_struct.unpack('>%df'%(ns,), tracetemp), dtype=_np.float32))
 
       elif (self.bhead['format'] == 2):
