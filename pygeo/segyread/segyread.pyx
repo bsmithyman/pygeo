@@ -325,8 +325,8 @@ class SEGYFile (object):
         self.endian = 'Foreign'
     else:
       self._maybePrint('Auto endian specified... Trying to autodetect data endianness.')
-      for i in xrange(1, self.ntr+1):
-        locar = self.readTraces(i)
+      for i in xrange(self.ntr):
+        locar = self[i]
         if ((not abs(locar).sum() == 0.) and (not np.isnan(locar.mean()))):
           nexp = abs(np.frexp((locar.astype(np.float64)**2).mean())[1])
           locar = locar.newbyteorder()
