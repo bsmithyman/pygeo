@@ -20,11 +20,11 @@
 
 # ----------------------------------------------------------------------
 
-import os.path as _path
-import mmap as _mmap
-import struct as _struct
-import numpy as _np
-import sys as _sys
+import os
+import mmap
+import struct
+import numpy as np
+import sys
 
 MEGABYTE = 1048576
 
@@ -47,6 +47,26 @@ BHEADSTRUCT = '>3L24H'
 TRHEADSTRUCT = '>7L4H8L2h4L46H'
 
 MAJORHEADERS = [1,2,3,4,7,38,39]
+
+# ------------------------------------------------------------------------
+# Functions
+
+# Written by Robert Kern on the SciPy-user mailing list.
+def ibm2ieee (ibm):
+  """ Converts an IBM floating point number into IEEE format. """
+
+  sign = ibm >> 31 & 0x01
+
+  exponent = ibm >> 24 & 0x7f
+
+  mantissa = ibm & 0x00ffffff
+  mantissa = (mantissa * 1.0) / 2**24
+
+  ieee = (1 - 2 * sign) * mantissa * 16.0**(exponent - 64)
+
+  return ieee
+
+# ------------------------------------------------------------------------
 
 class SEGYFileException(Exception):
   '''
@@ -114,7 +134,7 @@ class SEGYTraceHeader (object):
 
     traceheader = sf._fp.read(180)
 
-    traceheader = _struct.unpack(TRHEADSTRUCT,traceheader)
+    traceheader = struct.unpack(TRHEADSTRUCT,traceheader)
     tracehead = {}
 
     for i, label in enumerate(TRHEADLIST):
@@ -176,29 +196,12 @@ class SEGYFile (object):
 
   # --------------------------------------------------------------------
 
-  # Written by Robert Kern on the SciPy-user mailing list.
-  def _ibm2ieee (self, ibm):
-    """ Converts an IBM floating point number into IEEE format. """
-
-    sign = ibm >> 31 & 0x01
-
-    exponent = ibm >> 24 & 0x7f
-
-    mantissa = ibm & 0x00ffffff
-    mantissa = (mantissa * 1.0) / 2**24
-
-    ieee = (1 - 2 * sign) * mantissa * 16.0**(exponent - 64)
-
-    return ieee
-
-  # --------------------------------------------------------------------
-
-  def _detect_machine_endian (self):
+  def _detectMachineEndian (self):
     '''
     Detects native (machine) endian.
     '''
 
-    if _struct.pack('h', 1) == '\x01\x00':
+    if struct.pack('h', 1) == '\x01\x00':
       endian = 'Little'
     else:
       endian = 'Big'
@@ -214,8 +217,8 @@ class SEGYFile (object):
 
   def _maybePrint (self, text):
     if self.verbose:
-      _sys.stdout.write('%s\n'%(text,))
-      _sys.stdout.flush()
+      sys.stdout.write('%s\n'%(text,))
+      sys.stdout.flush()
 
   # --------------------------------------------------------------------
 
@@ -238,7 +241,7 @@ class SEGYFile (object):
       textheader = self._fp.read(3200).replace(' ','\x25').decode('IBM500')
       blockheader = self._fp.read(400)
 
-      blockheader = _struct.unpack(BHEADSTRUCT,blockheader[:60])
+      blockheader = struct.unpack(BHEADSTRUCT,blockheader[:60])
       bhead = {}
 
       for i, label in enumerate(BHEADLIST):
@@ -248,7 +251,7 @@ class SEGYFile (object):
         self.ns = bhead['hns']
       else:
         traceheader = self._fp.read(240)
-        traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
+        traceheader = struct.unpack(TRHEADSTRUCT,traceheader[:180])
         self.ns = traceheader[38]
 
     else:
@@ -256,7 +259,7 @@ class SEGYFile (object):
       bhead = None
 
       traceheader = self._fp.read(240)
-      traceheader = _struct.unpack(TRHEADSTRUCT,traceheader[:180])
+      traceheader = struct.unpack(TRHEADSTRUCT,traceheader[:180])
       self.ns = traceheader[38]
 
     self.thead = textheader
@@ -294,7 +297,7 @@ class SEGYFile (object):
 
   # --------------------------------------------------------------------
 
-  def _detectEndian (self):
+  def _detectFileEndian (self):
     if (self.endian != 'Auto'):
       self._maybePrint('%s endian specified... Not autodetecting.'%(self.endian,))
       if (self.endian != self.mendian):
@@ -304,10 +307,10 @@ class SEGYFile (object):
       self._maybePrint('Auto endian specified... Trying to autodetect data endianness.')
       for i in xrange(self.ntr):
         locar = self[i]
-        if ((not abs(locar).sum() == 0.) and (not _np.isnan(locar.mean()))):
-          nexp = abs(_np.frexp((locar.astype(_np.float64)**2).mean())[1])
+        if ((not abs(locar).sum() == 0.) and (not np.isnan(locar.mean()))):
+          nexp = abs(np.frexp((locar.astype(np.float64)**2).mean())[1])
           locar = locar.newbyteorder()
-          fexp = abs(_np.frexp((locar.astype(_np.float64)**2).mean())[1])
+          fexp = abs(np.frexp((locar.astype(np.float64)**2).mean())[1])
           if (fexp > nexp):
             self.endian = 'Native'
           else:
@@ -341,10 +344,10 @@ class SEGYFile (object):
     if (traces == None):
       return self.__getitem__(slice(None))
 
-    if not _np.iterable(traces):
+    if not np.iterable(traces):
       return self.__getitem__(traces-1)
     else:
-      return _np.array([self.__getitem__(trace-1) for trace in traces], dtype=_np.float32)
+      return np.array([self.__getitem__(trace-1) for trace in traces], dtype=np.float32)
 
   def __getitem__ (self, index):
     '''
@@ -372,7 +375,7 @@ class SEGYFile (object):
       for trace in traces:
         self._fp.seek(self._calcDataOffset(trace+1, ns))
         tracetemp = self._fp.read(ns*4)
-        result.append(_np.array(_struct.unpack('>%df'%(ns,), tracetemp), dtype=_np.float32))
+        result.append(np.array(struct.unpack('>%df'%(ns,), tracetemp), dtype=np.float32))
 
     # Handles everything else
     else:
@@ -385,43 +388,43 @@ class SEGYFile (object):
           self._maybePrint('             ...converting from IBM floating point.\n')
         for trace in traces:
           self._fp.seek(self._calcDataOffset(trace+1, ns))
-          tracetemp = _struct.pack('%df'%(ns,),*[self._ibm2ieee(item) for item in _struct.unpack('>%dL'%(ns,),self._fp.read(ns*4))])
-          result.append(_np.array(_struct.unpack('>%df'%(ns,), tracetemp), dtype=_np.float32))
+          tracetemp = struct.pack('%df'%(ns,),*[ibm2ieee(item) for item in struct.unpack('>%dL'%(ns,),self._fp.read(ns*4))])
+          result.append(np.array(struct.unpack('>%df'%(ns,), tracetemp), dtype=np.float32))
 
       elif (self.bhead['format'] == 2):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 32-bit fixed point.\n')
         for trace in traces:
           self._fp.seek(self._calcDataOffset(trace+1, ns))
-          result.append(_np.array(_struct.unpack('>%dl'%(ns,),self._fp.read(ns*4)), dtype=_np.int32))
+          result.append(np.array(struct.unpack('>%dl'%(ns,),self._fp.read(ns*4)), dtype=np.int32))
 
       elif (self.bhead['format'] == 3):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 16-bit fixed point.\n')
         for trace in traces:
           self._fp.seek(self._calcDataOffset(trace+1, ns))
-          result.append(_np.array(_struct.unpack('>%dh'%(ns,),self._fp.read(ns*2)), dtype=_np.int32))
+          result.append(np.array(struct.unpack('>%dh'%(ns,),self._fp.read(ns*2)), dtype=np.int32))
 
       elif (self.bhead['format'] == 8):
         if (self._isInitialized()):
           self._maybePrint('             ...reading from 8-bit fixed point.\n')
         for trace in traces:
           self._fp.seek(self._calcDataOffset(trace+1, ns))
-          result.append(_np.array(_struct.unpack('>%db'%(ns,),self._fp.read(ns)), dtype=_np.int32))
+          result.append(np.array(struct.unpack('>%db'%(ns,),self._fp.read(ns)), dtype=np.int32))
 
       elif (self.bhead['format'] == 4):
         if (self._isInitialized()):
           self._maybePrint('             ...converting from 32-bit fixed point w/ gain.\n')
         for trace in traces:
           self._fp.seek(self._calcDataOffset(trace+1, ns))
-          tracemantissa = _np.array(_struct.unpack('>%s'%(ns*'xxh',), self._fp.read(ns)), dtype=_np.float32)
-          traceexponent = _np.array(_struct.unpack('>%s'%(ns*'xbxx',), self._fp.read(ns)), dtype=_np.byte)
+          tracemantissa = np.array(struct.unpack('>%s'%(ns*'xxh',), self._fp.read(ns)), dtype=np.float32)
+          traceexponent = np.array(struct.unpack('>%s'%(ns*'xbxx',), self._fp.read(ns)), dtype=np.byte)
           result.append(tracemantissa**traceexponent)
       else:
         raise self.SEGYFileException('Unrecognized trace format.')
 
     
-    result = _np.array(result, dtype=_np.float32)
+    result = np.array(result, dtype=np.float32)
 
     if (result.shape[0] == 1):
       result.shape = (result.shape[1],)
@@ -507,16 +510,16 @@ class SEGYFile (object):
       self.usemmap = usemmap
 
     self._maybePrint('Detecting machine endianness...')
-    self.mendian = self._detect_machine_endian()
+    self.mendian = self._detectMachineEndian()
     self._maybePrint('%s.\n'%(self.mendian,))
 
-    self.filesize = _path.getsize(filename)
+    self.filesize = os.path.getsize(filename)
 
     fp = open(self.filename, 'r+b')
     if (self.usemmap):
       try:
         self._maybePrint('Trying to create memory map...')
-        self._fp = _mmap.mmap(fp.fileno(), 0)
+        self._fp = mmap.mmap(fp.fileno(), 0)
         self._maybePrint('Success. Using memory-mapped I/O.\n')
         fp.close()
       except:
@@ -536,7 +539,7 @@ class SEGYFile (object):
     #self._calcEnsembles()
 
     # Autodetect data endian
-    self._detectEndian()
+    self._detectFileEndian()
 
     # Confirm that the SEGYFile object has been initialized
     self.initialized = True
@@ -577,12 +580,12 @@ class SEGYFile (object):
     :type traces: ndarray, list
     '''
 
-    if not _np.iterable(traces):
+    if not np.iterable(traces):
       traces = [traces]
 
     self._maybePrint('Normalizing each trace to unit amplitude.\n')
 
-    return _np.array([trace/max(abs(trace.max()),abs(trace.min())) for trace in traces])
+    return np.array([trace/max(abs(trace.max()),abs(trace.min())) for trace in traces])
 
   # --------------------------------------------------------------------
 
@@ -639,14 +642,14 @@ class SEGYFile (object):
 
     fp.write(thead.encode('IBM500')[:3200])
     
-    bheadbin = _struct.pack(BHEADSTRUCT, *[bhead[key] for key in BHEADLIST]) + '\x00' * 340
+    bheadbin = struct.pack(BHEADSTRUCT, *[bhead[key] for key in BHEADLIST]) + '\x00' * 340
 
     fp.write(bheadbin)
 
     for i, trace in enumerate(traces):
-      trheadbin = _struct.pack(TRHEADSTRUCT, *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
+      trheadbin = struct.pack(TRHEADSTRUCT, *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
       fp.write(trheadbin)
-      tracetemp = _struct.pack('>%df'%(ns,), *list(trace))
+      tracetemp = struct.pack('>%df'%(ns,), *list(trace))
       fp.write(tracetemp)
 
     fp.close()
@@ -676,9 +679,9 @@ class SEGYFile (object):
     fp = open(outfilename, 'w+b')
 
     for i, trace in enumerate(traces):
-      trheadbin = _struct.pack(TRHEADSTRUCT, *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
+      trheadbin = struct.pack(TRHEADSTRUCT, *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
       fp.write(trheadbin)
-      tracetemp = _struct.pack('>%df'%(ns,), *list(trace))
+      tracetemp = struct.pack('>%df'%(ns,), *list(trace))
       fp.write(tracetemp)
 
     fp.close()

@@ -20,7 +20,7 @@
 
 # ----------------------------------------------------------------------
 
-import os.path as path
+import os
 import mmap
 import struct
 import sys
@@ -86,7 +86,6 @@ cdef ieee2ibm (str trace):
   return result
 
 # ------------------------------------------------------------------------
-
 
 class SEGYFileException(Exception):
   '''
@@ -535,7 +534,7 @@ class SEGYFile (object):
     self.mendian = self._detectMachineEndian()
     self._maybePrint('%s.\n'%(self.mendian,))
 
-    self.filesize = path.getsize(filename)
+    self.filesize = os.path.getsize(filename)
 
     fp = open(self.filename, 'r+b')
     if (self.usemmap):

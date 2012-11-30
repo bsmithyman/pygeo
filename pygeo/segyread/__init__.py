@@ -33,10 +33,10 @@ try:
   pyximport.install()
 except:
   print('Cython import failed; pygeo.segyread will use the legacy (pure Python) mode.')
-  from segyreadold import *
+  from segyreadvanilla import *
 else:
   try:
     from segyread import SEGYFile
   except ImportError:
     print('Could not build/import segyread.pyx; pygeo.segyread will use the legacy (pure Python) mode.')
-    from segyreadold import SEGYFile
+    from segyreadvanilla import SEGYFile
