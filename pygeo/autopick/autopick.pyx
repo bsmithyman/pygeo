@@ -169,3 +169,25 @@ def energyRatioCL (np.ndarray[F32_t, ndim=2] traces, Py_ssize_t windowsize=earwi
 
   return result
 
+def energyRatioPython (traces, windowsize=earwindow, damp=eardamp):
+
+  result = np.empty(traces.shape, dtype=np.float32)
+
+  for i in xrange(traces.shape[0]):
+    totalEnergy = 0
+
+    for j in xrange(windowsize):
+      cursq = traces[i,j]**2
+      totalEnergy += cursq
+      result[i,j] = 0.
+
+    windowTotalEnergy = totalEnergy
+
+    for j in xrange(windowsize, traces.shape[1]):
+      cursq = traces[i,j]**2
+      totalEnergy += cursq
+      windowTotalEnergy += cursq - traces[i, j-windowsize]**2
+      result[i,j] = windowTotalEnergy / (totalEnergy + damp)
+
+  return result
+

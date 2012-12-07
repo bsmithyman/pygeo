@@ -32,7 +32,7 @@ from pygeo.fastio import getParams, readfast, writefast
 AUTHORSHIP = 'Brendan Smithyman'
 VERSION = '%prog v1.0\n'
 DESCRIPTION = 'Uses ray hit count information to compute a 2D FAST model from the weighted average of cells in a 3D FAST model.'
-USAGE = '%prog [options] segy_file'
+USAGE = '%prog [options] input [output]'
 
 addfilename = '.2D'
 
@@ -47,7 +47,11 @@ parser = OptionParser(	usage		= USAGE,
 parser.add_option('-n', '--hitcount', action='store', dest='hitcount',
 		help='file containing hitcount information [%default]')
 
-parser.set_defaults(	hitcount	= 'num.cell')
+parser.add_option('-d', '--direct2d', action='store_true', dest='direct2d',
+		help='directly generate a 2D FAST model [%default]')
+
+parser.set_defaults(	hitcount	= 'num.cell',
+			direct2d	= False)
 
 (options, args) = parser.parse_args()
 
@@ -62,7 +66,7 @@ if (not os.path.isfile(infile)):
   parser.error('Input file "%s" does not exist!'%(infile,))
 
 if (not os.path.isfile(hcfile)):
-  parser.error('Hit count fiel "%s" does not exist!'%(hcfile,))
+  parser.error('Hit count file "%s" does not exist!'%(hcfile,))
 
 if (len(args) < 2):
   outfile = infile + addfilename
@@ -96,7 +100,10 @@ model2d = model2davg.copy() * baseblank
 hitcount3dsum = hitcount2dsum.copy().reshape(pseudodims)
 avg2d = np.nan_to_num(((1. * hitcount * model3d) / hitcount3dsum).sum(axis=1))
 model2d += avg2d
-newmodel3d = model3d.copy()
-newmodel3d[:] = model2d.reshape(pseudodims)
 
-writefast(outfile, newmodel3d)
+if (options.direct2d):
+  writefast(outfile, model2d.reshape(pseudodims))
+else:
+  newmodel3d = model3d.copy()
+  newmodel3d[:] = model2d.reshape(pseudodims)
+  writefast(outfile, newmodel3d)
