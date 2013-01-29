@@ -128,6 +128,9 @@ class SEGYTraceHeader (object):
       indices = index.indices(self.sf.ntr)
       return [self.__getitem__(i) for i in xrange(*indices)]
 
+    if (index < 0):
+      index = self.sf.ntr + index
+
     sf = self.sf
     curloc = sf._fp.tell()
     sf._fp.seek(sf._calcHeadOffset(index+1, sf.ns))
@@ -373,6 +376,9 @@ class SEGYFile (object):
     # Handles SU format and IEEE floating point
     if (self.isSU or self.bhead['format'] == 5):
       for trace in traces:
+        if (trace < 0):
+          trace = self.ntr + trace
+
         self._fp.seek(self._calcDataOffset(trace+1, ns))
         tracetemp = self._fp.read(ns*4)
         result.append(np.array(struct.unpack('>%df'%(ns,), tracetemp), dtype=np.float32))
@@ -691,3 +697,22 @@ class SEGYFile (object):
   def __len__ (self):
     return self.ntr
 
+  # --------------------------------------------------------------------
+
+  class SIter (object):
+    def __init__ (self, sf):
+      self.sf = sf
+      self.stop = len(sf)
+      self.index = 0
+
+    def next (self):
+      if (self.index >= self.stop):
+        raise StopIteration
+
+      else:
+        result = self.sf.__getitem__(self.index)
+        self.index += 1
+        return result
+
+  def __iter__ (self):
+    return self.SIter(self)
