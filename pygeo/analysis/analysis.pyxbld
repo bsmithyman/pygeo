@@ -19,15 +19,7 @@
 
 # ----------------------------------------------------------------------
 
-try:
-  import pyximport
-  pyximport.install()
-except:
-  print('Cython import failed; pygeo.analysis will not function.')
-  raise
-else:
-  try:
-    from analysis import *
-  except ImportError:
-    print('Coud not build/import analysis.pyx; pygeo.analysis will not function.')
-    raise
+def make_ext (modname, pyxfilename):
+  from distutils.extension import Extension
+  import numpy
+  return Extension(name = modname, sources = [pyxfilename, 'filter.c'], include_dirs = [numpy.get_include()], depends=[], extra_compile_args=['-w','-fopenmp'], extra_link_args=['-fopenmp'])

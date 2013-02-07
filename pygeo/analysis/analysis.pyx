@@ -1,6 +1,6 @@
 
 # pygeo - a distribution of tools for managing geophysical data
-# Copyright (C) 2011, 2012 Brendan Smithyman
+# Copyright (C) 2011, 2012, 2013 Brendan Smithyman
 
 # This file is part of pygeo.
 
@@ -19,9 +19,17 @@
 
 # ----------------------------------------------------------------------
 
+import cython
+cimport cython
+import numpy as np
+cimport numpy as np
+
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
+
+import scipy.fftpack as fftpack
+
+ctypedef np.float32_t F32_t
 
 interpscalco = lambda scalco: float(-1./scalco) if (scalco < 0) else float(scalco)
 
@@ -47,14 +55,14 @@ def clipsign (value, clip):
 
 def wiggle (traces,skipt=1,scale=1.,lwidth=.1,offsets=None,redvel=0.,tshift=0.,sampr=1.,clip=10.,color='black',fill=True,line=True):
 
+  ns = traces.shape[1]
+  ntr = traces.shape[0]
+  t = np.arange(ns)*sampr
+
   if (offsets is not None):
     shifts = timereduce(offsets, redvel, tshift)
   else:
     shifts = np.zeros((ntr,))
-
-  ns = traces.shape[1]
-  ntr = traces.shape[0]
-  t = np.arange(ns)*sampr
 
   for i in range(0, ntr, skipt):
     trace = traces[i].copy()
@@ -78,8 +86,13 @@ def tracenormalize (traces):
   else:
     ntr = dims[0]
 
-  result = np.array([trace/max(abs(trace.max()),abs(trace.min())) for trace in traces.reshape(ntr,nsamp)]).reshape(dims)
-  return result
+  data = traces.reshape(ntr,nsamp)
+  result = np.empty_like(data)
+  for i in xrange(ntr):
+    trace = data[i]
+    result[i,:] = trace / max(abs(trace.max()),abs(trace.min()))
+
+  return result.reshape(dims)
 
 def agc (traces, windowlen):
   dims = traces.shape
@@ -112,6 +125,46 @@ def agc (traces, windowlen):
 
       windowsum += addenergy
       windowsum -= subenergy
+
+  return result.reshape(dims)
+
+cdef extern void c_energyRatio "energyRatio" (F32_t inarr[], F32_t outarr[], Py_ssize_t arrL, Py_ssize_t arrW, Py_ssize_t strideL, Py_ssize_t strideW, Py_ssize_t windowsize, double damp) nogil
+
+def energyratio (np.ndarray[F32_t, ndim=2] traces, Py_ssize_t windowsize=40, double damp=100):
+  '''
+  energyratio(traces, windowsize=40, damp=100) -> array
+
+  Generates a STA/LTA (Short-Term Average over Long-Term Average) filtered
+  result that highlights sharp increases in trace amplitude.
+  '''
+
+  cdef np.ndarray[F32_t, ndim=2] result
+  result = np.empty((traces.shape[0],traces.shape[1]), dtype=np.float32)
+
+  cdef Py_ssize_t arrL, arrW, strideL, strideW
+  cdef F32_t *inarr = <F32_t *> traces.data
+  cdef F32_t *outarr = <F32_t *> result.data
+
+  arrL = traces.shape[0]
+  arrW = traces.shape[1]
+  strideL = traces.strides[0]
+  strideW = traces.strides[1]
+
+  c_energyRatio(inarr, outarr, arrL, arrW, strideL, strideW, windowsize, damp)
+
+  return result
+
+def envelope (np.ndarray[F32_t, ndim=2] traces):
+  '''
+  Returns the envelope of a time series.
+  '''
+
+  cdef Py_ssize_t i
+  cdef np.ndarray[F32_t, ndim=2] result
+  result = np.empty((traces.shape[0],traces.shape[1]), dtype=np.float32)
+
+  for i in xrange(traces.shape[0]):
+    result[i,:] = np.sqrt(traces[i,:]**2 + fftpack.hilbert(traces[i,:])**2)
 
   return result
 

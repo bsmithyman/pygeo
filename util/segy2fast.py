@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # pygeo - a distribution of tools for managing geophysical data
 # Copyright (C) 2011, 2012 Brendan Smithyman

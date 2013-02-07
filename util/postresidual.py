@@ -62,6 +62,9 @@ refloc = '>TRCGEOMETRY\n'
 refoffset = 2
 tfac = 1000.
 
+outputformat = '%7.3f, %e'
+outputheader = 'Freq.  , Residual    '
+
 # ------------------------------------------------------------------------
 # Functions
 
@@ -89,27 +92,36 @@ def getpicksbitmap (infile, dims):
 
   return np.ma.MaskedArray(pickmap, pickmap == 0)
 
-normfeed = {
+normlut = {
 	0: {
 		'name': 'conventional amp+phase',
 		'func': lambda est, obs: est - obs,
 	},
 	1: {
 		'name': 'amplitude-normalized phase only',
-		'func': lambda est, obs: np.exp(1j * np.angle(est)) - np.exp(1j * np.angle(obs))
+		'func': lambda est, obs: np.exp(1j * np.angle(est)) - np.exp(1j * np.angle(obs)),
 	},
 	2: {
 		'name': 'amplitude-preserved phase only',
-		'func': lambda est, obs: abs(obs)*np.exp(1j * np.angle(est)) - obs
+		'func': lambda est, obs: abs(obs)*np.exp(1j * np.angle(est)) - obs,
 	},
-	-1: lambda est, obs: np.log(est/obs).imag,
-	-2: lambda est, obs: np.log(est/obs),
-	-3: lambda est, obs: np.log(est/obs).real,
+	-1: {
+		'name': 'logarithmic phase only',
+		'func': lambda est, obs: np.log(est/obs).imag,
+	},
+	-2: {
+		'name': 'logarithmic phase + amplitude',
+		'func': lambda est, obs: np.log(est/obs),
+	},
+	-3: {
+		'name': 'logarithmic amplitude only',
+		'func': lambda est, obs: np.log(est/obs).real,
+	},
 }
 
 def calcresid (est, obs, norm, tau = 0., pickmap = None):
   
-  diff = normfeed[norm](est, obs)
+  diff = normlut[norm]['func'](est, obs)
   if (norm in picknorms and tau):
     taufac = np.exp(pickmap / tau)
     diff *= taufac
@@ -127,8 +139,14 @@ parser = ModifiedParser(usage		= USAGE,
 			description	= DESCRIPTION,
 			epilog		= EPILOG)
 
-parser.add_option('-f', '--fazonly', action='store', dest='fazonly',
-		help='parameter as in FULLWV; specifies data norm [%default]')
+parser.add_option('-m', '--mode', action='store', dest='mode',
+		help='mode of output, either \'text\' or \'csv\' [%default]')
+
+parser.add_option('-n', '--norm', action='store', dest='norm',
+		help='parameter as \'fazonly\' in FULLWV; specifies data norm [%default]')
+
+parser.add_option('-o', '--output', action='store', dest='output',
+		help='file to write output into (when using mode==csv) [%default]')
 
 parser.add_option('-p', '--pickfile', action='store', dest='pickfile',
 		help='file containing first-arrival picks in ProMax ASCII database output format [%default]')
@@ -140,7 +158,9 @@ parser.add_option('-v', '--verbose', action='store_true', dest='verbose',
 		help='display additional information')
 
 parser.set_defaults(
-			fazonly		= 0,
+			mode		= 'text',
+			norm		= 0,
+			output		= 'resid.csv',
 			pickfile	= 'picks.ascii',
 			tau		= 0.,
 			verbose		= False,
@@ -164,7 +184,7 @@ else:
 
   projnm = projnms[0]
 
-norm = int(options.fazonly)
+norm = int(options.norm)
 if (not norm in validnorms):
   parser.error('\'%d\' is not a valid norm!'%(norm,))
 
@@ -203,8 +223,15 @@ if (tau):
 else:
   pickmap = None
 
-maybePrint('\tData norm for computation is %d'%(norm,))
+maybePrint('\tData norm for computation is %s'%(normlut[norm]['name'],))
 maybePrint('\tLaplace time constant is Tau=%3.3f'%(tau,))
+
+if (options.mode == 'csv'):
+  fp = open(options.output, 'w')
+  fp.write(outputheader + '\n')
+elif (options.mode == 'text'):
+  print('\n' + outputheader)
+  print('-' * len(outputheader))
 
 residcomposite = 0.
 residlist = []
@@ -218,7 +245,12 @@ for i in xrange(len(sortedfreqs)):
   residcomposite += resid
   residlist.append(resid)
 
-  print('%g\t%s Hz'%(resid, estfiles[i][12:]))
+  if (options.mode == 'text'):
+    print(outputformat%(sortedfreqs[i], resid))
+  elif (options.mode == 'csv'):
+    fp.write(outputformat%(sortedfreqs[i], resid) + '\n')
 
 print('\nTotal residual: %g'%(residcomposite,))
+if (options.mode == 'csv'):
+  fp.close()
 
