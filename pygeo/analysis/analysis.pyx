@@ -78,21 +78,21 @@ def wiggle (traces,skipt=1,scale=1.,lwidth=.1,offsets=None,redvel=0.,tshift=0.,s
       plt.fill(i + clipsign(trace / scale, clip), t - shifts[i], color=color, linewidth=0)
   plt.grid(True)
 
-def tracenormalize (traces):
-  dims = traces.shape
-  nsamp = dims[-1]
-  if (dims[:-1] > 1):
-    ntr = reduce(lambda x,y: x*y, dims[:-1])
-  else:
-    ntr = dims[0]
-
-  data = traces.reshape(ntr,nsamp)
-  result = np.empty_like(data)
-  for i in xrange(ntr):
-    trace = data[i]
-    result[i,:] = trace / max(abs(trace.max()),abs(trace.min()))
-
-  return result.reshape(dims)
+#def tracenormalize (traces):
+#  dims = traces.shape
+#  nsamp = dims[-1]
+#  if (dims[:-1] > 1):
+#    ntr = reduce(lambda x,y: x*y, dims[:-1])
+#  else:
+#    ntr = dims[0]
+#
+#  data = traces.reshape(ntr,nsamp)
+#  result = np.empty_like(data)
+#  for i in xrange(ntr):
+#    trace = data[i]
+#    result[i,:] = trace / max(abs(trace.max()),abs(trace.min()))
+#
+#  return result.reshape(dims)
 
 def agc (traces, windowlen):
   dims = traces.shape
@@ -153,6 +153,32 @@ def energyratio (np.ndarray[F32_t, ndim=2] traces, Py_ssize_t windowsize=40, dou
   c_energyRatio(inarr, outarr, arrL, arrW, strideL, strideW, windowsize, damp)
 
   return result
+
+cdef extern void c_traceNormalize "traceNormalize" (F32_t inarr[], F32_t outarr[], Py_ssize_t arrL, Py_ssize_t arrW, Py_ssize_t strideL, Py_ssize_t strideW) nogil
+
+def tracenormalize (np.ndarray[F32_t, ndim=2] traces):
+  '''
+  tracenormalize(traces) -> array
+
+  Normalizes traces by their maximum amplitude.
+  '''
+
+  cdef np.ndarray[F32_t, ndim=2] result
+  result = np.empty((traces.shape[0],traces.shape[1]), dtype=np.float32)
+
+  cdef Py_ssize_t arrL, arrW, strideL, strideW
+  cdef F32_t *inarr = <F32_t *> traces.data
+  cdef F32_t *outarr = <F32_t *> result.data
+
+  arrL = traces.shape[0]
+  arrW = traces.shape[1]
+  strideL = traces.strides[0]
+  strideW = traces.strides[1]
+
+  c_traceNormalize(inarr, outarr, arrL, arrW, strideL, strideW)
+
+  return result
+
 
 def envelope (np.ndarray[F32_t, ndim=2] traces):
   '''

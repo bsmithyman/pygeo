@@ -23,6 +23,9 @@
 #include <Python.h>	
 #include <math.h>
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 void energyRatio (	float inarr[],
 			float outarr[],
 			Py_ssize_t arrL,
@@ -31,3 +34,10 @@ void energyRatio (	float inarr[],
 			Py_ssize_t strideW,
 			Py_ssize_t windowsize,
 			double damp);
+
+void traceNormalize (	float inarr[],
+			float outarr[],
+			Py_ssize_t arrL,
+			Py_ssize_t arrW,
+			Py_ssize_t strideL,
+			Py_ssize_t strideW);

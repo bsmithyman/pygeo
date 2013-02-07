@@ -62,3 +62,40 @@ void energyRatio (	float *inarr,
   } // End OMP parallel
 }
 
+void traceNormalize (	float *inarr,
+			float *outarr,
+			Py_ssize_t arrL,
+			Py_ssize_t arrW,
+			Py_ssize_t strideL,
+			Py_ssize_t strideW) {
+
+  int i, j, pos;
+  int jsize = strideL/sizeof(float);
+  float maxval;
+
+ #pragma omp parallel shared(jsize, inarr, outarr, arrL, arrW, strideL, strideW) private(i, j, pos, maxval)
+  {
+    #pragma omp for
+    for (i = 0; i < arrL; i++) {
+      max = 0.
+
+      // Inner loop over all samples in the trace
+      for (j = 0; j < arrW; j++) {
+        pos = i*jsize + j;
+        maxval = MAX(abs(inarr[pos]),maxval);
+      }
+
+      if (maxval != 0.) {
+        for (j = 0; j < arrW; j++) {
+          pos = i*jsize + j;
+          outarr[pos] = inarr[pos] / maxval;
+        }
+      } else {
+        for (j = 0; j < arrW; j++) {
+          pos = i*jsize + j;
+          outarr[pos] = inarr[pos];
+        }
+      }
+    }
+  }
+}
