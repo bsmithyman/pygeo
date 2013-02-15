@@ -261,6 +261,8 @@ class SEGYFile (object):
 
     if (not self.isSU):
       textheader = self._fp.read(3200).replace(' ','\x25').decode('IBM500')
+      textheader = '\n'.join(s[pos:pos+80] for pos in xrange(0, len(textheader), 80))
+
       blockheader = self._fp.read(400)
 
       blockheader = struct.unpack(BHEADSTRUCT,blockheader[:60])
