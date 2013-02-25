@@ -39,6 +39,8 @@ BHEADLIST = ['jobid','lino','reno','ntrpr','nart','hdt','dto','hns','nso',
              'schn','hstas','hstae','htatyp','hcorr','bgrcv','rcvm','mfeet',
              'polyt','vpol']
 
+# TRHEADLIST and TRHEADSTRUCT are now obsolete (but left here for clarity in this version)
+
 TRHEADLIST = ['tracl','tracr','fldr','tracf','ep','cdp','cdpt','trid','nvs',
              'nhs','duse','offset','gelev','selev','sdepth','gdel','sdel',
              'swdep','gwdep','scalel','scalco','sx','sy','gx','gy','counit',
@@ -48,8 +50,83 @@ TRHEADLIST = ['tracl','tracr','fldr','tracf','ep','cdp','cdpt','trid','nvs',
              'nofilf','nofils','lcf','hcf','lcs','hcs','year','day','hour','minute','sec',
              'timbas','trwf','grnors','grnofr','grnlof','gaps','otrav']
 
-BHEADSTRUCT = '>3L24H'
 TRHEADSTRUCT = '>7L4H8L2h4L46H'
+
+TRHEADDICT = {
+    0: ['I', 'tracl'],
+    4: ['I', 'tracr'],
+    8: ['I', 'fldr'],
+   12: ['I', 'tracf'],
+   16: ['I', 'ep'],
+   20: ['I', 'cdp'],
+   24: ['I', 'cdpt'],
+   28: ['H', 'trid'],
+   30: ['H', 'nvs'],
+   32: ['H', 'nhs'],
+   34: ['H', 'duse'],
+   36: ['I', 'offset'],
+   40: ['I', 'gelev'],
+   44: ['I', 'selev'],
+   48: ['I', 'sdepth'],
+   52: ['I', 'gdel'],
+   56: ['I', 'sdel'],
+   60: ['I', 'swdep'],
+   64: ['I', 'gwdep'],
+   68: ['H', 'scalel'],
+   70: ['H', 'scalco'],
+   72: ['I', 'sx'],
+   76: ['I', 'sy'],
+   80: ['I', 'gx'],
+   84: ['I', 'gy'],
+   88: ['H', 'counit'],
+   90: ['H', 'wevel'],
+   92: ['H', 'swevel'],
+   94: ['H', 'sut'],
+   96: ['H', 'gut'],
+   98: ['H', 'sstat'],
+  100: ['H', 'gstat'],
+  102: ['H', 'tstat'],
+  104: ['H', 'laga'],
+  106: ['H', 'lagb'],
+  108: ['H', 'delrt'],
+  110: ['H', 'muts'],
+  112: ['H', 'mute'],
+  114: ['H', 'ns'],
+  116: ['H', 'dt'],
+  118: ['H', 'gain'],
+  120: ['H', 'igc'],
+  122: ['H', 'igi'],
+  124: ['H', 'corr'],
+  126: ['H', 'sfs'],
+  128: ['H', 'sfe'],
+  130: ['H', 'slen'],
+  132: ['H', 'styp'],
+  134: ['H', 'stas'],
+  136: ['H', 'stae'],
+  138: ['H', 'tatyp'],
+  140: ['H', 'afilf'],
+  142: ['H', 'afils'],
+  144: ['H', 'nofilf'],
+  146: ['H', 'nofils'],
+  148: ['H', 'lcf'],
+  150: ['H', 'hcf'],
+  152: ['H', 'lcs'],
+  154: ['H', 'hcs'],
+  156: ['H', 'year'],
+  158: ['H', 'day'],
+  160: ['H', 'hour'],
+  162: ['H', 'minute'],
+  164: ['H', 'sec'],
+  166: ['H', 'timbas'],
+  168: ['H', 'trwf'],
+  170: ['H', 'grnors'],
+  172: ['H', 'grnofr'],
+  174: ['H', 'grnlof'],
+  176: ['H', 'gaps'],
+  178: ['H', 'otrav'],
+}
+
+BHEADSTRUCT = '>3L24H'
 
 MAJORHEADERS = [1,2,3,4,7,38,39]
 
@@ -154,13 +231,16 @@ class SEGYTraceHeader (object):
     curloc = sf._fp.tell()
     sf._fp.seek(sf._calcHeadOffset(index+1, sf.ns))
 
-    traceheader = sf._fp.read(180)
+    traceheader = sf._fp.read(struct.calcsize(sf.trheadstruct))
 
-    traceheader = struct.unpack(TRHEADSTRUCT,traceheader)
+    traceheader = struct.unpack(sf.trheadstruct,traceheader)
     tracehead = {}
 
-    for i, label in enumerate(TRHEADLIST):
+    for i, label in enumerate(sf.trheadlist):
       tracehead[label] = traceheader[i]
+
+    if ('PADDING' in tracehead.keys()):
+      del tracehead['PADDING']
 
     sf._fp.seek(curloc)
 
@@ -215,6 +295,44 @@ class SEGYFile (object):
   filesize = 0
   ns = 0
   ntr = 0
+
+  # --------------------------------------------------------------------
+
+  def _makeTraceHeaderList (self, augment):
+
+    localdict = TRHEADDICT.copy()
+
+    for key in augment:
+      code, name = augment[key]
+      killrange = range(key, key + struct.calcsize(code))
+      for i in killrange:
+        if (i in localdict):
+          del localdict[i]
+
+    localdict.update(augment)
+
+    iterkeys = localdict.keys()
+    iterkeys.sort()
+
+    trheadstructlist = ['>']
+    trheadlist = []
+
+    loc = 0
+
+    for key in iterkeys:
+      if (key > loc):
+        trheadstructlist.append('%ds'%(key - loc, ))
+        trheadlist.append('PADDING')
+        loc = key
+
+      if (key == loc):
+        code, name = localdict[key]
+        trheadstructlist.append(code)
+        trheadlist.append(name)
+        loc += struct.calcsize(code)
+
+    self.trheadlist = trheadlist
+    self.trheadstruct = ''.join(trheadstructlist)
 
   # --------------------------------------------------------------------
 
@@ -275,7 +393,7 @@ class SEGYFile (object):
         self.ns = bhead['hns']
       else:
         traceheader = self._fp.read(240)
-        traceheader = struct.unpack(TRHEADSTRUCT,traceheader[:180])
+        traceheader = struct.unpack(self.trheadstruct,traceheader[:180])
         self.ns = traceheader[38]
 
     else:
@@ -283,7 +401,7 @@ class SEGYFile (object):
       bhead = None
 
       traceheader = self._fp.read(240)
-      traceheader = struct.unpack(TRHEADSTRUCT,traceheader[:180])
+      traceheader = struct.unpack(self.trheadstruct,traceheader[:180])
       self.ns = traceheader[38]
 
     self.thead = textheader
@@ -519,7 +637,7 @@ class SEGYFile (object):
        
   # --------------------------------------------------------------------
 
-  def __init__ (self, filename, verbose = None, majorheadersonly = None, isSU = None, endian = None, usemmap = None):
+  def __init__ (self, filename, verbose = None, majorheadersonly = None, isSU = None, endian = None, usemmap = None, extraheaders = None):
 
     self.filename = filename
 
@@ -537,6 +655,11 @@ class SEGYFile (object):
 
     if (usemmap is not None):
       self.usemmap = usemmap
+
+    if (extraheaders is not None):
+      augment = extraheaders
+    else:
+      augment = {}
 
     self._maybePrint('Detecting machine endianness...')
     self.mendian = self._detectMachineEndian()
@@ -558,6 +681,8 @@ class SEGYFile (object):
     else:
       self._fp = fp
 
+    self._makeTraceHeaderList(augment)
+
     # Get header information from file
     self._readHeaders()
 
@@ -576,8 +701,6 @@ class SEGYFile (object):
   # --------------------------------------------------------------------
 
   def __del__ (self):
-    if self.usemmap:
-      self._map.close()
     self._fp.close()
 
   # --------------------------------------------------------------------
@@ -676,7 +799,7 @@ class SEGYFile (object):
     fp.write(bheadbin)
 
     for i, trace in enumerate(traces):
-      trheadbin = struct.pack(TRHEADSTRUCT, *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
+      trheadbin = struct.pack(self.trheadstruct, *[trhead[i][key] for key in self.trheadlist]) + '\x00' * 60
       fp.write(trheadbin)
       tracetemp = struct.pack('>%df'%(ns,), *list(trace))
       fp.write(tracetemp)
@@ -708,7 +831,7 @@ class SEGYFile (object):
     fp = open(outfilename, 'w+b')
 
     for i, trace in enumerate(traces):
-      trheadbin = struct.pack(TRHEADSTRUCT, *[trhead[i][key] for key in TRHEADLIST]) + '\x00' * 60
+      trheadbin = struct.pack(self.trheadstruct, *[trhead[i][key] for key in self.trheadlist]) + '\x00' * 60
       fp.write(trheadbin)
       tracetemp = struct.pack('>%df'%(ns,), *list(trace))
       fp.write(tracetemp)
