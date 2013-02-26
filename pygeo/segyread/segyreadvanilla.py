@@ -134,7 +134,7 @@ def ibm2ieee (ibm):
 
   sign = ibm >> 31 & 0x01
 
-cdef ibm2ieee (str trace):
+  exponent = ibm >> 24 & 0x7f
 
   mantissa = ibm & 0x00ffffff
   mantissa = (mantissa * 1.0) / 2**24
