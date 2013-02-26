@@ -94,39 +94,39 @@ def wiggle (traces,skipt=1,scale=1.,lwidth=.1,offsets=None,redvel=0.,tshift=0.,s
 #
 #  return result.reshape(dims)
 
-def agc (traces, windowlen):
-  dims = traces.shape
-  nsamp = dims[-1]
-  if (dims[:-1] > 1):
-    ntr = reduce(lambda x,y: x*y, dims[:-1])
-  else:
-    ntr = dims[0]
-
-  tracetemp = traces.reshape(ntr,nsamp)
-  result = np.zeros_like(tracetemp)
-
-  windowshift = windowlen/2
-
-  for i in xrange(ntr):
-    windowsum = (tracetemp[i,:windowshift]**2).sum()
-    for j in xrange(windowshift,nsamp):
-
-      result[i,j] = windowlen * tracetemp[i,j] / windowsum
-
-      try:
-        addenergy = tracetemp[i,j+windowshift]**2
-      except IndexError:
-        addenergy = 0.
-
-      try:
-        subenergy = tracetemp[i,j-windowshift]**2
-      except:
-        subenergy = 0.
-
-      windowsum += addenergy
-      windowsum -= subenergy
-
-  return result.reshape(dims)
+#def agc (traces, windowlen):
+#  dims = traces.shape
+#  nsamp = dims[-1]
+#  if (dims[:-1] > 1):
+#    ntr = reduce(lambda x,y: x*y, dims[:-1])
+#  else:
+#    ntr = dims[0]
+#
+#  tracetemp = traces.reshape(ntr,nsamp)
+#  result = np.zeros_like(tracetemp)
+#
+#  windowshift = windowlen/2
+#
+#  for i in xrange(ntr):
+#    windowsum = (tracetemp[i,:windowshift]**2).sum()
+#    for j in xrange(windowshift,nsamp):
+#
+#      result[i,j] = windowlen * tracetemp[i,j] / windowsum
+#
+#      try:
+#        addenergy = tracetemp[i,j+windowshift]**2
+#      except IndexError:
+#        addenergy = 0.
+#
+#      try:
+#        subenergy = tracetemp[i,j-windowshift]**2
+#      except:
+#        subenergy = 0.
+#
+#      windowsum += addenergy
+#      windowsum -= subenergy
+#
+#  return result.reshape(dims)
 
 cdef extern void c_energyRatio "energyRatio" (F32_t inarr[], F32_t outarr[], Py_ssize_t arrL, Py_ssize_t arrW, Py_ssize_t strideL, Py_ssize_t strideW, Py_ssize_t windowsize, double damp) nogil
 
@@ -179,6 +179,31 @@ def tracenormalize (np.ndarray[F32_t, ndim=2] traces):
 
   return result
 
+cdef extern void c_automaticGainControl "automaticGainControl" (F32_t inarr[], F32_t outarr[], Py_ssize_t arrL, Py_ssize_t arrW, Py_ssize_t strideL, Py_ssize_t strideW, Py_ssize_t windowsize, double damp) nogil
+
+def agc (np.ndarray[F32_t, ndim=2] traces, Py_ssize_t windowsize=40, double damp = 100):
+  '''
+  agc(traces, windowsize=40, damp=100) -> array
+
+  Applies Automatic Gain Control to traces (normalizing energy over a
+  running moving average window).
+  '''
+
+  cdef np.ndarray[F32_t, ndim=2] result
+  result = np.empty((traces.shape[0],traces.shape[1]), dtype=np.float32)
+
+  cdef Py_ssize_t arrL, arrW, strideL, strideW
+  cdef F32_t *inarr = <F32_t *> traces.data
+  cdef F32_t *outarr = <F32_t *> result.data
+
+  arrL = traces.shape[0]
+  arrW = traces.shape[1]
+  strideL = traces.strides[0]
+  strideW = traces.strides[1]
+
+  c_automaticGainControl(inarr, outarr, arrL, arrW, strideL, strideW, windowsize, damp)
+
+  return result
 
 def envelope (np.ndarray[F32_t, ndim=2] traces):
   '''

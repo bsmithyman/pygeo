@@ -33,10 +33,13 @@ else:
   raise FIOUnrecognizedRecordLength
 
 # ----------------------------------------------------------------------
-def readfast (filename, dims):
+def readfast (filename, dims=None):
   '''
   Read FAST model file to Python ndarray.
   '''
+
+  if (dims is None):
+    dims = getParams()['dims']
 
   (nx, ny, nz) = dims
 

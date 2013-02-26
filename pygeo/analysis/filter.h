@@ -41,3 +41,12 @@ void traceNormalize (	float inarr[],
 			Py_ssize_t arrW,
 			Py_ssize_t strideL,
 			Py_ssize_t strideW);
+
+void automaticGainControl (	float *inarr,
+				float *outarr,
+				Py_ssize_t arrL,
+				Py_ssize_t arrW,
+				Py_ssize_t strideL,
+				Py_ssize_t strideW,
+				Py_ssize_t windowsize,
+				double damp);

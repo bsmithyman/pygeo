@@ -77,7 +77,7 @@ void traceNormalize (	float *inarr,
   {
     #pragma omp for
     for (i = 0; i < arrL; i++) {
-      max = 0.
+      maxval = 0.;
 
       // Inner loop over all samples in the trace
       for (j = 0; j < arrW; j++) {
@@ -95,6 +95,74 @@ void traceNormalize (	float *inarr,
           pos = i*jsize + j;
           outarr[pos] = inarr[pos];
         }
+      }
+    }
+  }
+}
+
+void automaticGainControl (	float *inarr,
+				float *outarr,
+				Py_ssize_t arrL,
+				Py_ssize_t arrW,
+				Py_ssize_t strideL,
+				Py_ssize_t strideW,
+				Py_ssize_t windowsize,
+				double damp) {
+
+  int i, j, pos, curwindowsize, windowsizeover2 = windowsize/2;
+  int jsize = strideL/sizeof(float);
+  double windowTotalEnergy, cursq;
+
+  #pragma omp parallel shared(jsize, inarr, outarr, arrL, arrW, strideL, strideW, windowsize, damp, windowsizeover2) private(i, j, pos, windowTotalEnergy, cursq, curwindowsize)
+  {
+    #pragma omp for
+    for (i = 0; i < arrL; i++) {
+      windowTotalEnergy = 0.;
+
+      for (j = 0; j < windowsizeover2; j++) {
+        pos = i*jsize + j;
+        cursq = inarr[pos]*inarr[pos];
+        windowTotalEnergy += cursq; 
+      }
+
+      curwindowsize = windowsizeover2;
+
+      for (j = 0; j < windowsizeover2; j++) {
+        pos = i*jsize + j + windowsizeover2;
+        cursq = inarr[pos]*inarr[pos];
+        windowTotalEnergy += cursq;
+        curwindowsize += 1;
+
+        pos = i*jsize + j;
+        cursq = inarr[pos]*inarr[pos];
+        outarr[pos] = inarr[pos]*curwindowsize/(windowTotalEnergy + damp);
+      }
+
+      curwindowsize = windowsize;
+
+      for (j = windowsizeover2; j < arrW - windowsizeover2; j++) {
+        pos = i*jsize + j + windowsizeover2;
+        cursq = inarr[pos]*inarr[pos];
+        windowTotalEnergy += cursq;
+
+        pos = i*jsize + j - windowsizeover2;
+        cursq = inarr[pos]*inarr[pos];
+        windowTotalEnergy -= cursq;
+
+        pos = i*jsize + j;
+        cursq = inarr[pos]*inarr[pos];
+        outarr[pos] = inarr[pos]*curwindowsize/(windowTotalEnergy + damp);
+      }
+
+      for (j = arrW - windowsize/2; j < arrW; j++) {
+        pos = i*jsize + j - windowsizeover2;
+        cursq = inarr[pos]*inarr[pos];
+        windowTotalEnergy -= cursq;
+        curwindowsize -= 1;
+
+        pos = i*jsize + j;
+        cursq = inarr[pos]*inarr[pos];
+        outarr[pos] = inarr[pos]*curwindowsize/(windowTotalEnergy + damp);
       }
     }
   }
