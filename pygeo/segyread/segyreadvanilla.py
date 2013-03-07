@@ -431,9 +431,9 @@ class SEGYFile (object):
       for i in xrange(self.ntr):
         locar = self[i]
         if ((not abs(locar).sum() == 0.) and (not np.isnan(locar.mean()))):
-          nexp = abs(np.frexp((locar.astype(np.float64)**2).mean())[1])
+          nexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
           locar = locar.newbyteorder()
-          fexp = abs(np.frexp((locar.astype(np.float64)**2).mean())[1])
+          fexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
           if (fexp > nexp):
             self.endian = 'Native'
           else:
