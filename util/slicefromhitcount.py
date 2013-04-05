@@ -25,7 +25,7 @@ import warnings
 import numpy as np
 from optparse import OptionParser
 from pygeo.fastio import getParams, readfast, writefast
-import scipy.interpolate as interpolate
+from scipy.interpolate import griddata
 
 # ------------------------------------------------------------------------
 # Settings
@@ -112,28 +112,20 @@ hitcount3dsum = hitcount2dsum.copy().reshape(pseudodims)
 # y-axis, normalized by the total number of rays in that x,z location
 avg2d = np.nan_to_num(((1. * hitcount * model3d) / hitcount3dsum).sum(axis=1))
 
-# Create an empty (2D) model in which to store the result
-model2d = avg2d.copy()
-
 # Create mask (value of 1 where there are no rays)
 selector = hitcount2dsum > 0
 baseblank = 1 - selector
 
 if (options.extrap):
-  # Locate datapoints and compute inputs for bisplrep
-  locs = np.argwhere(selector)
-  x = locs[:,0].astype(np.double)
-  y = locs[:,1].astype(np.double)
-  z = avg2d[selector]
-  w = hitcount2dsum[selector].astype(np.double) / hitcount2dsum.max()
+  nx, nz = avg2d.shape
+  X, Z = np.mgrid[0:nx, 0:nz]
 
-  xs = x[::subsampleinterval]
-  ys = y[::subsampleinterval]
-  zs = z[::subsampleinterval]
-  ws = w[::subsampleinterval]
-
-  # Carry out spline fit
-  terms = interpolate.bisplrep(xs, ys, zs, ws, xb=0, xe=dims[0], yb=0, ye=dims[2], s=1500, kx=1, ky=3)
+  x0 = X[selector]
+  z0 = Z[selector]
+  pos0 = np.array([x0.ravel(),z0.ravel()]).T
+  val = avg2d[selector]
+  
+  outim = griddata(pos0, val, P, method='nearest').reshape((nx,nz))
 
   # Locate missing points and extrapolate using bisplev
   filllocs = np.argwhere(baseblank)
@@ -144,9 +136,9 @@ if (options.extrap):
   model2d[ravelfilllocs] = Z
 
 else:
+  # Create an empty (2D) model in which to store the result
   # Copy the 2D average model into the masked region
-  model2d += model2davg.copy() * baseblank
-
+  model2d = avg2d.copy() + model2davg.copy() * baseblank
 
 if (options.direct2d):
   writefast(outfile, model2d.reshape(pseudodims))
