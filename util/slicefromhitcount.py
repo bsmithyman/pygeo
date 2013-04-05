@@ -25,6 +25,7 @@ import warnings
 import numpy as np
 from optparse import OptionParser
 from pygeo.fastio import getParams, readfast, writefast
+import scipy.interpolate as interpolate
 
 # ------------------------------------------------------------------------
 # Settings
@@ -35,6 +36,7 @@ DESCRIPTION = 'Uses ray hit count information to compute a 2D FAST model from th
 USAGE = '%prog [options] input [output]'
 
 addfilename = '.2D'
+subsampleinterval = 10
 
 # ------------------------------------------------------------------------
 
@@ -50,8 +52,12 @@ parser.add_option('-n', '--hitcount', action='store', dest='hitcount',
 parser.add_option('-d', '--direct2d', action='store_true', dest='direct2d',
 		help='directly generate a 2D FAST model [%default]')
 
+parser.add_option('-e', '--extrapolate', action='store_true', dest='extrap',
+		help='use 2D spline fitting to extrapolate outside the area with ray coverage [%default]')
+
 parser.set_defaults(	hitcount	= 'num.cell',
-			direct2d	= False)
+			direct2d	= False,
+			extrap		= False)
 
 (options, args) = parser.parse_args()
 
@@ -93,13 +99,54 @@ except:
 
 # ------------------------------------------------------------------------
 
+# Calculate average of the 3D model along the y-axis
 model2davg = model3d.mean(axis=1)
+
+# Calculate 2D hitcount by summing along the y-axis
 hitcount2dsum = hitcount.sum(axis=1)
-baseblank = 1 - (hitcount2dsum > 0)
-model2d = model2davg.copy() * baseblank
+
+# Make a copy of the 2D hitcount and reproject into 3D filled matrix
 hitcount3dsum = hitcount2dsum.copy().reshape(pseudodims)
+
+# Take the weighted average of the cells in each x,z location along the
+# y-axis, normalized by the total number of rays in that x,z location
 avg2d = np.nan_to_num(((1. * hitcount * model3d) / hitcount3dsum).sum(axis=1))
-model2d += avg2d
+
+# Create an empty (2D) model in which to store the result
+model2d = avg2d.copy()
+
+# Create mask (value of 1 where there are no rays)
+selector = hitcount2dsum > 0
+baseblank = 1 - selector
+
+if (options.extrap):
+  # Locate datapoints and compute inputs for bisplrep
+  locs = np.argwhere(selector)
+  x = locs[:,0].astype(np.double)
+  y = locs[:,1].astype(np.double)
+  z = avg2d[selector]
+  w = hitcount2dsum[selector].astype(np.double) / hitcount2dsum.max()
+
+  xs = x[::subsampleinterval]
+  ys = y[::subsampleinterval]
+  zs = z[::subsampleinterval]
+  ws = w[::subsampleinterval]
+
+  # Carry out spline fit
+  terms = interpolate.bisplrep(xs, ys, zs, ws, xb=0, xe=dims[0], yb=0, ye=dims[2], s=1500, kx=1, ky=3)
+
+  # Locate missing points and extrapolate using bisplev
+  filllocs = np.argwhere(baseblank)
+  ravelfilllocs = np.argwhere(baseblank.ravel())
+  X = filllocs[:,0]
+  Y = filllocs[:,1]
+  Z = interpolate.bisplev(X, Y, terms)
+  model2d[ravelfilllocs] = Z
+
+else:
+  # Copy the 2D average model into the masked region
+  model2d += model2davg.copy() * baseblank
+
 
 if (options.direct2d):
   writefast(outfile, model2d.reshape(pseudodims))

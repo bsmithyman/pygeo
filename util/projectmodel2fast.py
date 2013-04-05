@@ -232,4 +232,4 @@ printnow('Writing output')
 
 # Write FAST model
 outdims = (nx, 1, nz)
-writefast(outfile, outim.reshape(outdims)
+writefast(outfile, outim.reshape(outdims))
