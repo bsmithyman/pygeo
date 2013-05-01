@@ -36,7 +36,11 @@ parser = OptionParser(	usage		= USAGE,
 parser.add_option('-d', '--dims', action='store', dest='dims',
 		help='dimensions of FAST model')
 
-parser.set_defaults(	dims = None)
+parser.add_option('-r', '--ref', action='store', dest='refmodel',
+		help='reference model to subtract')
+
+parser.set_defaults(	dims = None,
+			refmodel = None)
 
 (options, args) = parser.parse_args()
 
@@ -53,5 +57,11 @@ else:
   dims = [int(item) for item in options.dims.strip().split(',')]
 
 velmodel = readfast(infile, dims).copy(order='F')
+
+if (options.refmodel is not None):
+  refmodel = readfast(options.refmodel, dims).copy(order='F')
+else:
+  refmodel = np.zeros_like(velmodel)
+
 with open(outfile, 'w') as fp:
-  fp.write(velmodel)
+  fp.write(velmodel - refmodel)
