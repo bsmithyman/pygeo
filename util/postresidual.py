@@ -52,7 +52,7 @@ maxtime = 1.0E10
 
 gen_obsfilekey = '*.utobs*'
 gen_estfilekey = '*.utest*'
-proto_obsfilekey = '%s.udiff*'
+proto_obsfilekey = '%s.utobs*'
 proto_estfilekey = '%s.utest*'
 
 validnorms = [-3,-2,-1,0,1,2]
@@ -210,8 +210,8 @@ maybePrint('\twith  %d frequencies in common'%(len(sortedfreqs),))
 
 tau = float(options.tau)
 if (tau):
-  with SEGYFile(obsfiles[0]) as sf:
-    dims = (sf.ntr/2, sf.ns)
+  sf = SEGYFile(obsfiles[0])
+  dims = (sf.ntr/2, sf.ns)
   if (norm in picknorms):
     if (os.path.isfile(options.pickfile)):
       maybePrint('\treading picks from %s...'%(options.pickfile,))
