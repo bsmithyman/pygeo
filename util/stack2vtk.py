@@ -51,8 +51,12 @@ parser.add_option('-l', '--label', action='store', dest='label',
 parser.add_option('-g', '--geom', action='store', dest='geom',
 		help='file for geometry information [%default]')
 
-parser.set_defaults(	label	= 'Scalars',
-			geom	= None,
+parser.add_option('-s', '--simplify', action='store', dest='simplify',
+		help='simplify geometry by sampling every nth, mth [%default]')
+
+parser.set_defaults(	label		= 'Scalars',
+			geom		= None,
+			simplify	= '1,1',
 )
 
 (options, args) = parser.parse_args()
@@ -66,6 +70,8 @@ if (len(args) >= 2):
   outfile = args[1]
 else:
   outfile = os.path.splitext(infile)[0] + '.vts'
+
+div0, div1 = [int(item) for item in options.simplify.strip().split(',')]
 
 sfdata = SEGYFile(infile)
 if (not options.geom is None):
@@ -106,10 +112,12 @@ coordarray = np.empty((ntr,ns,3), dtype=np.float64)
 coordarray[:,:,0] = (traceX * theones.T).T
 coordarray[:,:,1] = (traceY * theones.T).T
 coordarray[:,:,2] = (traceZ * theones.T).T + theslope * theones
-rcoordarray = coordarray.ravel()
+coordarraysubset = coordarray[::div0,::div1,:]
+rcoordarray = coordarraysubset.ravel()
 
 im = sfdata[:]
-imr = im.ravel()
+imsubset = im[::div0,::div1]
+imr = imsubset.ravel()
 vals = vtk.vtkFloatArray()
 vals.SetVoidArray(imr, len(imr), 1)
 vals.SetNumberOfComponents(1)
@@ -120,6 +128,8 @@ darr = vtk.vtkDoubleArray()
 darr.SetVoidArray(rcoordarray, len(rcoordarray), 1)
 darr.SetNumberOfComponents(3)
 points.SetData(darr)
+
+nssub, ntrsub = imsubset.shape
 
 #ipd = vtk.vtkPolyData()
 #ipd.SetPoints(points)
@@ -137,7 +147,7 @@ points.SetData(darr)
 #writer.Write()
 
 grid = vtk.vtkStructuredGrid()
-grid.SetDimensions(ns,1,ntr)
+grid.SetDimensions(nssub,1,ntrsub)
 grid.SetPoints(points)
 grid.GetPointData().SetScalars(vals)
 
