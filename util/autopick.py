@@ -169,13 +169,27 @@ def process_normalize ():
   writenow('PROCESS: Normalizing trace amplitudes.')
 
   params = dbase['params']
-  data = dbase['data_current']
+  data = dbase['data_current'].reshape(params['flatdatadims'])
   
-  normdata = np.nan_to_num(analysis.tracenormalize(data))
+  normdata = analysis.tracenormalize(data).reshape(params['datadims'])
 
   if (keepdata):
     dbase['data_normalize'] = normdata
   dbase['data_current'] = normdata
+
+def process_agc (windowsize = 0.1):
+  writenow('PROCESS: Applying Automatic Gain Control.')
+  writenow('         \twindowsize = %f s'%windowsize)
+  params = dbase['params']
+  data = dbase['data_current'].reshape(params['flatdatadims'])
+  dt = params['dt']
+
+  windowsamps = int(windowsize/dt)
+  agcdata = analysis.agc(data, windowsamps).reshape(params['datadims'])
+
+  if (keepdata):
+    dbase['data_energyratio'] = agcdata
+  dbase['data_current'] = agcdata
 
 def display_gather (shotid):
   writenow('DISPLAY: Showing shot gather with header(s) overlaid.')
@@ -245,7 +259,7 @@ loadfunc()
 params = dbase['params']
 headers = dbase['headers']
 
-pick_argwhere(0.5)
-headers_masknearoffset('picks_argwhere', 5000)
-plt.imshow(headers['picks_argwhere_masked'], aspect='auto')
-plt.show()
+#pick_argwhere(0.5)
+#headers_masknearoffset('picks_argwhere', 5000)
+#plt.imshow(headers['picks_argwhere_masked'], aspect='auto')
+#plt.show()
