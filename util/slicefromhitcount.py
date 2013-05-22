@@ -119,21 +119,14 @@ baseblank = 1 - selector
 if (options.extrap):
   nx, nz = avg2d.shape
   X, Z = np.mgrid[0:nx, 0:nz]
+  P = np.array([X.ravel(),Z.ravel()]).T
 
   x0 = X[selector]
   z0 = Z[selector]
   pos0 = np.array([x0.ravel(),z0.ravel()]).T
   val = avg2d[selector]
   
-  outim = griddata(pos0, val, P, method='nearest').reshape((nx,nz))
-
-  # Locate missing points and extrapolate using bisplev
-  filllocs = np.argwhere(baseblank)
-  ravelfilllocs = np.argwhere(baseblank.ravel())
-  X = filllocs[:,0]
-  Y = filllocs[:,1]
-  Z = interpolate.bisplev(X, Y, terms)
-  model2d[ravelfilllocs] = Z
+  model2d = griddata(pos0, val, P, method='nearest').reshape((nx,nz))
 
 else:
   # Create an empty (2D) model in which to store the result
