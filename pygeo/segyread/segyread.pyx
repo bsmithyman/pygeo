@@ -585,7 +585,7 @@ class SEGYFile (object):
 
   def __repr__ (self):
     #return 'SEGYFile(%r, verbose=%r, isSU=%r, endian=%r)'%(self.filename,self.verbose,self.isSU,self.endian)
-    return 'SEGYFile(%r)'%(self.filename,)
+    return 'SEGYFile(%r)'%(os.path.split(self.filename)[1],)
 
   # --------------------------------------------------------------------
 
@@ -639,7 +639,7 @@ class SEGYFile (object):
 
   def __init__ (self, filename, verbose = None, majorheadersonly = None, isSU = None, endian = None, usemmap = None, extraheaders = None):
 
-    self.filename = filename
+    self.filename = os.path.abspath(filename)
 
     if (verbose is not None):
       self.verbose = verbose
