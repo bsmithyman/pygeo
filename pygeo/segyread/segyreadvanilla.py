@@ -60,15 +60,15 @@ TRHEADDICT = {
    32: ['H', 'nhs'],
    34: ['H', 'duse'],
    36: ['I', 'offset'],
-   40: ['I', 'gelev'],
-   44: ['I', 'selev'],
+   40: ['i', 'gelev'],
+   44: ['i', 'selev'],
    48: ['I', 'sdepth'],
    52: ['I', 'gdel'],
    56: ['I', 'sdel'],
    60: ['I', 'swdep'],
    64: ['I', 'gwdep'],
-   68: ['H', 'scalel'],
-   70: ['H', 'scalco'],
+   68: ['h', 'scalel'],
+   70: ['h', 'scalco'],
    72: ['I', 'sx'],
    76: ['I', 'sy'],
    80: ['I', 'gx'],
@@ -564,7 +564,7 @@ class SEGYFile (object):
 
   def __repr__ (self):
     #return 'SEGYFile(%r, verbose=%r, isSU=%r, endian=%r)'%(self.filename,self.verbose,self.isSU,self.endian)
-    return 'SEGYFile(%r)'%(self.filename,)
+    return 'SEGYFile(%r)'%(os.path.split(self.filename)[1],)
 
   # --------------------------------------------------------------------
 
@@ -618,7 +618,7 @@ class SEGYFile (object):
 
   def __init__ (self, filename, verbose = None, majorheadersonly = None, isSU = None, endian = None, usemmap = None, extraheaders = None):
 
-    self.filename = filename
+    self.filename = os.path.abspath(filename)
 
     if (verbose is not None):
       self.verbose = verbose
