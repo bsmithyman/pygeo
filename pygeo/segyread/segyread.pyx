@@ -25,6 +25,7 @@ import mmap
 import struct
 import sys
 import copy
+import warnings
 
 import numpy as np
 cimport numpy as np
@@ -447,18 +448,20 @@ class SEGYFile (object):
         self.endian = 'Foreign'
     else:
       self._maybePrint('Auto endian specified... Trying to autodetect data endianness.')
-      for i in xrange(self.ntr):
-        locar = self[i]
-        if ((not abs(locar).sum() == 0.) and (not np.isnan(locar.mean()))):
-          nexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
-          locar = locar.newbyteorder()
-          fexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
-          if (fexp > nexp):
-            self.endian = 'Native'
-          else:
-            self.endian = 'Foreign'
-          self._maybePrint('Scanned %d trace(s). Endian appears to be %s.'%(i, self.endian))
-          break
+      with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        for i in xrange(self.ntr):
+          locar = self[i]
+          if ((not abs(locar).sum() == 0.) and (not np.isnan(locar.mean()))):
+            nexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
+            locar = locar.newbyteorder()
+            fexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
+            if (fexp > nexp):
+              self.endian = 'Native'
+            else:
+              self.endian = 'Foreign'
+            self._maybePrint('Scanned %d trace(s). Endian appears to be %s.'%(i, self.endian))
+            break
 
       if (self.endian == 'Foreign'):
         self._maybePrint('Will attempt to convert to %s endian when traces are read.\n'%(self.mendian,))
