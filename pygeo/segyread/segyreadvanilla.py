@@ -204,7 +204,7 @@ class SEGYTraceHeader (object):
 
     if isinstance(index, slice):
       indices = index.indices(self.sf.ntr)
-      return [self.__getitem__(i) for i in xrange(*indices)]
+      return (self.__getitem__(i) for i in xrange(*indices))
 
     if (index < 0):
       index = self.sf.ntr + index
