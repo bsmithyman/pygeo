@@ -1,4 +1,4 @@
-#!/usr/bin/ipython2 -i
+#!/usr/bin/ipython -i
 
 # pygeo - a distribution of tools for managing geophysical data
 # Copyright (C) 2011, 2012, 2013 Brendan Smithyman

@@ -25,6 +25,7 @@ import mmap
 import struct
 import sys
 import copy
+import warnings
 
 import numpy as np
 cimport numpy as np
@@ -65,8 +66,8 @@ TRHEADDICT = {
    32: ['H', 'nhs'],
    34: ['H', 'duse'],
    36: ['I', 'offset'],
-   40: ['I', 'gelev'],
-   44: ['I', 'selev'],
+   40: ['i', 'gelev'],
+   44: ['i', 'selev'],
    48: ['I', 'sdepth'],
    52: ['I', 'gdel'],
    56: ['I', 'sdel'],
@@ -222,7 +223,7 @@ class SEGYTraceHeader (object):
 
     if isinstance(index, slice):
       indices = index.indices(self.sf.ntr)
-      return [self.__getitem__(i) for i in xrange(*indices)]
+      return (self.__getitem__(i) for i in xrange(*indices))
 
     if (index < 0):
       index = self.sf.ntr + index
@@ -447,18 +448,20 @@ class SEGYFile (object):
         self.endian = 'Foreign'
     else:
       self._maybePrint('Auto endian specified... Trying to autodetect data endianness.')
-      for i in xrange(self.ntr):
-        locar = self[i]
-        if ((not abs(locar).sum() == 0.) and (not np.isnan(locar.mean()))):
-          nexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
-          locar = locar.newbyteorder()
-          fexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
-          if (fexp > nexp):
-            self.endian = 'Native'
-          else:
-            self.endian = 'Foreign'
-          self._maybePrint('Scanned %d trace(s). Endian appears to be %s.'%(i, self.endian))
-          break
+      with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        for i in xrange(self.ntr):
+          locar = self[i]
+          if ((not abs(locar).sum() == 0.) and (not np.isnan(locar.mean()))):
+            nexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
+            locar = locar.newbyteorder()
+            fexp = abs(np.frexp(locar.astype(np.float64)**2)[1]).mean()
+            if (fexp > nexp):
+              self.endian = 'Native'
+            else:
+              self.endian = 'Foreign'
+            self._maybePrint('Scanned %d trace(s). Endian appears to be %s.'%(i, self.endian))
+            break
 
       if (self.endian == 'Foreign'):
         self._maybePrint('Will attempt to convert to %s endian when traces are read.\n'%(self.mendian,))
@@ -585,7 +588,7 @@ class SEGYFile (object):
 
   def __repr__ (self):
     #return 'SEGYFile(%r, verbose=%r, isSU=%r, endian=%r)'%(self.filename,self.verbose,self.isSU,self.endian)
-    return 'SEGYFile(%r)'%(self.filename,)
+    return 'SEGYFile(%r)'%(os.path.split(self.filename)[1],)
 
   # --------------------------------------------------------------------
 
@@ -639,7 +642,7 @@ class SEGYFile (object):
 
   def __init__ (self, filename, verbose = None, majorheadersonly = None, isSU = None, endian = None, usemmap = None, extraheaders = None):
 
-    self.filename = filename
+    self.filename = os.path.abspath(filename)
 
     if (verbose is not None):
       self.verbose = verbose
