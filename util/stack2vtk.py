@@ -54,9 +54,13 @@ parser.add_option('-g', '--geom', action='store', dest='geom',
 parser.add_option('-s', '--simplify', action='store', dest='simplify',
 		help='simplify geometry by sampling every nth, mth [%default]')
 
+parser.add_option('-o', '--override', action='store', dest='override',
+		help='override top and bottom elevation [%default]')
+
 parser.set_defaults(	label		= 'Scalars',
 			geom		= None,
 			simplify	= '1,1',
+			override	= None,
 )
 
 (options, args) = parser.parse_args()
@@ -111,7 +115,12 @@ coordarray = np.empty((ntr,ns,3), dtype=np.float64)
 
 coordarray[:,:,0] = (traceX * theones.T).T
 coordarray[:,:,1] = (traceY * theones.T).T
-coordarray[:,:,2] = (traceZ * theones.T).T + theslope * theones
+if (options.override):
+  overtop, overbottom = [float(item) for item in options.override.strip().split(',')]
+  depths = np.linspace(overtop, overbottom, ns)
+  coordarray[:,:,2] = theones * depths
+else:
+  coordarray[:,:,2] = (traceZ * theones.T).T + theslope * theones
 coordarraysubset = coordarray[::div0,::div1,:]
 rcoordarray = coordarraysubset.ravel()
 
