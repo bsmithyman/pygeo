@@ -90,11 +90,13 @@ def readini (infile):
   freqstart = 11
   freqend = freqstart + settingsdict['nom']/5 + 1*(not not settingsdict['nom']%5)
   [[freqs.append(float(item)) for item in line.strip().split() ] for line in lines[freqstart:freqend]]
+  settingsdict['freqs'] = np.array(freqs)
 
   kys = []
   kystart = freqend+1
   kyend = kystart + settingsdict['nky']/5 + 1*(not not settingsdict['nky']%5)
   [[kys.append(float(item)) for item in line.strip().split() ] for line in lines[kystart:kyend]]
+  settingsdict['kys'] = np.array(kys)
 
   lsplit = lines[kyend+1].strip().split()
   settingsdict['nslices'] = int(lsplit[0])

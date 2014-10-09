@@ -22,4 +22,4 @@
 def make_ext (modname, pyxfilename):
   from distutils.extension import Extension
   import numpy
-  return Extension(name = modname, sources = [pyxfilename], include_dirs = [numpy.get_include()], depends=[], extra_compile_args=['-w'])
+  return Extension(name = modname, sources = [pyxfilename, 'fpconvert.c'], include_dirs = [numpy.get_include()], depends=[], extra_compile_args=['-w'])

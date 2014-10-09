@@ -69,6 +69,9 @@ parser.add_option('-e', '--error', action='store', dest='error',
 parser.add_option('-o', '--omit', action='store_true', dest='omit',
 		help='omit shots without picks and renumber accordingly')
 
+parser.add_option('-r', '--resamp', action='store', dest='resamp',
+		help='use a subset of shots, every nth [%default]')
+
 parser.set_defaults(	basis	= '0.,0.,0.',
 			angle	= '0.',
 			key	= 'delrt',
@@ -77,7 +80,8 @@ parser.set_defaults(	basis	= '0.,0.,0.',
 			tfac	= '1e3',
 			shotout	= 'shotout.dat',
 			error	= '30.',
-			omit	= False)
+			omit	= False,
+			resamp	= 1)
 
 (options, args) = parser.parse_args()
 
@@ -102,6 +106,7 @@ tfac = np.float(options.tfac)
 shotout = options.shotout
 error = np.float(options.error)
 omit = options.omit
+resamp = np.int(options.resamp)
 
 # Open SEG-Y file and get first trace header
 sys.stdout.write('Reading "%s"...\n'%(infile,))
@@ -150,7 +155,7 @@ shotnumber = 0
 bounds = [1e10,-1e10,1e10,-1e10,1e10,-1e10]
 
 # Loop over each shot gather
-for i in xrange(ngathers):
+for i in xrange(0, ngathers, resamp):
   outlines = []
 
   # Get the trace header for the first trace in this shot gather

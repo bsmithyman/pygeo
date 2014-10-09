@@ -1,0 +1,76 @@
+#!/usr/bin/env python2
+
+# Output Directory (relative to CWD)
+outdir = '.'
+
+# Relevant Files
+pinfile = 'line6-initial-complete.pic'
+outfile = '%s/picks.ascii' % (outdir,)
+
+# Settings
+tfac = 1. # ms / ms
+numshots = 1386
+numrecs = 1873
+
+# Read in first-arrival picks
+f = open(pinfile, 'r')
+lines = f.readlines()
+f.close()
+
+# Misc
+deadcode = float(339999995214436424907732413799364296704.00)
+outformat = '<%10d|%10.4f |%10.4f|%10.4f|\n'
+
+header = '''  
+
+
+  ASCII database file write for Area="nechako", Line="line06"
+
+
+  Value list for Database Order TRC
+ SIN Number                                                                      
+>TRCGEOMETRYSIN
+ SRF Number                                                                      
+>TRCGEOMETRYSRF
+ FB_PICK4                                                                        
+>TRCGEOMETRY
+        TRC   SIN        SRF            
+'''
+
+linelist = {}
+
+for iter, line in enumerate(lines):
+  if line[0:8] == 'ENSEMBLE':
+    linelist[int(line[18:24])] = iter
+
+thevalues = linelist.values()
+thevalues.sort()
+
+newlinelist = {}
+for iter, item in enumerate(thevalues):
+  newlinelist[iter] = item
+
+outlines = []
+
+trace = 0
+for shot in xrange(numshots):
+  recindex = newlinelist[shot] + 2
+  for rec in xrange(1, numrecs +1):
+    trace += 1
+    try:
+      if (int(lines[recindex][0:8]) == rec):
+        time = float(lines[recindex][9:20]) * tfac
+        outlines.append(outformat % (trace, shot + 1, rec, time))
+        recindex += 1
+      else:
+        outlines.append(outformat % (trace, shot + 1, rec, deadcode))
+
+    except:
+        outlines.append(outformat % (trace, shot + 1, rec, deadcode))
+
+outlines.append('\n*END')
+      
+f = open(outfile, 'w')
+f.write(header)
+f.writelines(outlines)
+f.close()

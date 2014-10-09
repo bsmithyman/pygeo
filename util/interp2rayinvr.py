@@ -24,14 +24,14 @@ import numpy as np
 from scipy.interpolate import griddata
 from pygeo.fastio import readfast
 
-infile = 'vel50'
+infile = 'vel10.2D'
 outfile = 'line15.rayinvr'
 
 y = 0.
-olddims = (161,41,61)
-newdims = (321,121)
-oldori = (477000.,5856.,-2000.)
-newori = (477000.,-2000.)
+olddims = (151,65,61)
+newdims = (301,121)
+oldori = (-1.,-1.1,-2000.)
+newori = (-1.,-2000.)
 sl = 20
 dxold = 100
 dxnew = 50

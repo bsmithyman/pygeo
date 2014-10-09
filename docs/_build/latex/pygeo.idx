@@ -1,0 +1,12 @@
+\indexentry{pygeo.segyread (module)|hyperpage}{3}
+\indexentry{pygeo.segyread (module)|hyperpage}{3}
+\indexentry{SEGYFile (class in pygeo.segyread)|hyperpage}{3}
+\indexentry{\_\_getitem\_\_() (pygeo.segyread.SEGYFile method)|hyperpage}{4}
+\indexentry{findTraces() (pygeo.segyread.SEGYFile method)|hyperpage}{4}
+\indexentry{readTraces() (pygeo.segyread.SEGYFile method)|hyperpage}{4}
+\indexentry{sNormalize() (pygeo.segyread.SEGYFile method)|hyperpage}{4}
+\indexentry{writeFlat() (pygeo.segyread.SEGYFile method)|hyperpage}{4}
+\indexentry{writeSEGY() (pygeo.segyread.SEGYFile method)|hyperpage}{4}
+\indexentry{writeSU() (pygeo.segyread.SEGYFile method)|hyperpage}{5}
+\indexentry{SEGYTraceHeader (class in pygeo.segyread)|hyperpage}{5}
+\indexentry{\_\_getitem\_\_() (pygeo.segyread.SEGYTraceHeader method)|hyperpage}{5}
