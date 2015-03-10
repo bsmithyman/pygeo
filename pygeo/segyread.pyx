@@ -571,7 +571,7 @@ class SEGYFile (object):
           traceexponent = np.array(struct.unpack('>%s'%(ns*'xbxx',), self._fp.read(ns)), dtype=np.byte)
           result.append(tracemantissa**traceexponent)
       else:
-        raise self.SEGYFileException('Unrecognized trace format.')
+        raise SEGYFileException('Unrecognized trace format.')
 
     
     result = np.array(result, dtype=np.float32)
@@ -605,7 +605,7 @@ class SEGYFile (object):
     '''
 
     if not self.trhead[0].has_key(key):
-      raise self.SEGYFileException('Invalid trace header: %s'%key)
+      raise SEGYFileException('Invalid trace header: %s'%key)
 
     validtraces = []
 

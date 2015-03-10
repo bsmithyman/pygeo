@@ -39,3 +39,5 @@ nosetests.xml
 *.swp
 *.sublime-project
 *.sublime-workspace
+
+*.c
