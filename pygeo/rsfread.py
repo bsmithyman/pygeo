@@ -66,13 +66,13 @@ class RSFFile (np.memmap):
 
   def __new__ (cls, filename, verbose = None, usemmap = None, mode = 'r+'):
 
-    #if (verbose is not None):
-    #  self.verbose = verbose
+    if (verbose is not None):
+      self.verbose = verbose
 
-    #if (usemmap is not None):
-    #  self.usemmap = usemmap
+    if (usemmap is not None):
+      self.usemmap = usemmap
 
-    #self._maybePrint('Opening RSF header file...')
+    self._maybePrint('Opening RSF header file...')
 
     with open(filename, 'r') as fp:
       headbin = fp.read(maxhlen)
@@ -88,7 +88,7 @@ class RSFFile (np.memmap):
     if (offset == 0):
       try:
         datafile = header['in']
-        #self._maybePrint('... got data file "%s".'%(self.datafile,))
+        self._maybePrint('... got data file "%s".'%(self.datafile,))
       except:
         print('RSF header does not specify data file!')
         raise
@@ -98,16 +98,16 @@ class RSFFile (np.memmap):
 
     else:
       datafile = filename
-      #self._maybePrint('... data in same file at offset %d.'%(offset,))
+      self._maybePrint('... data in same file at offset %d.'%(offset,))
 
     datalen = os.path.getsize(datafile) - offset
     fp = open(datafile, 'r+b')
 
     if (usemmap):
       try:
-        #self._maybePrint('Trying to create memory map...')
+        self._maybePrint('Trying to create memory map...')
         _fp = mmap.mmap(fp.fileno(), 0)
-        _maybePrint('Success. Using memory-mapped I/O.\n')
+        self._maybePrint('Success. Using memory-mapped I/O.\n')
       except:
         _fp = fp
         usemmap = False
