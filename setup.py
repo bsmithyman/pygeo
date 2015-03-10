@@ -49,7 +49,7 @@ with open('README.md') as fp:
 
 NAME = 'pygeo'
 
-genPath = lambda fns: ['__init__.py'] + ['%s/%s'%(NAME, fn) for fn in fns]
+genPath = lambda fns: ['%s/__init__.py'%(NAME,)] + ['%s/%s'%(NAME, fn) for fn in fns]
 genName = lambda subname: '%s.%s'%(NAME, subname)
 
 extensions = [
