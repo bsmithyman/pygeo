@@ -24,6 +24,6 @@
   :platform: Unix
   :synopsis: A distribution of tools for managing geophysical data.
 
-.. moduleauthor:: Brendan Smithyman <bsmithyman@eos.ubc.ca>
+.. moduleauthor:: Brendan Smithyman <brendan@bitsmithy.net>
 
 '''

@@ -21,11 +21,12 @@
 
 # ----------------------------------------------------------------------
 
-from distutils.core import setup
-from distutils.extension import Extension
+import os
+from setuptools import setup
+from setuptools.extension import Extension
 from setuptools import find_packages
 from Cython.Build import cythonize
-import numpy as np
+import numpy
 
 CLASSIFIERS = [
 'Development Status :: 4 - Beta',
@@ -43,24 +44,29 @@ CLASSIFIERS = [
 'Natural Language :: English',
 ]
 
-import os, os.path
-
 with open('README.md') as fp:
     LONG_DESCRIPTION = ''.join(fp.readlines())
 
+NAME = 'pygeo'
+
+genPath = lambda fns: ['__init__.py'] + ['%s/%s'%(NAME, fn) for fn in fns]
+genName = lambda subname: '%s.%s'%(NAME, subname)
+
 extensions = [
-    Extension('analysis', ['analysis.pyx', 'filter.c']),
-    Extension('autopick', ['autopick.pyx', 'filter.c']),
-    Extension('dipfilt', ['dipfilt.pyx']),
-    Extension('segyread', ['segyread/segyread.pyx', 'segyread/fpconvert.c']),
+    Extension(genName('analysis'),  genPath(['analysis.pyx', 'filter.c'])),
+    Extension(genName('autopick'),  genPath(['autopick.pyx', 'filter.c'])),
+    Extension(genName('coord'),     genPath(['coord.py'])),
+    Extension(genName('dipfilt'),   genPath(['dipfilt.pyx'])),
+    Extension(genName('fastio'),    genPath(['fastio.py'])),
+    Extension(genName('fullpy'),    genPath(['fullpy.py'])),
+    Extension(genName('rsfread'),   genPath(['rsfread.py'])),
+    Extension(genName('segyarray'), genPath(['segyarray.py'])),
+    Extension(genName('segyread'),  genPath(['segyread.pyx', 'fpconvert.c'])),
+    Extension(genName('testing'),   genPath(['testing.py'])),
 ]
     
-
-sourcefiles = ['segyread/segyread.pyx', 'segyread/fpconvert.c']
-extensions.append(Extension('segyread', sourcefiles))
-
 setup(
-    name = 'Pygeo',
+    name = NAME,
     version = '0.1',
     packages = find_packages(),
     install_requires = ['numpy',
@@ -78,6 +84,9 @@ setup(
     classifiers = CLASSIFIERS,
     platforms = ['Linux', 'Solaris', 'Mac OS-X', 'Unix'],
     use_2to3 = False,
+    include_dirs = [numpy.get_include()],
+    extra_compile_args=['-w','-fopenmp'],
+    extra_link_args=['-fopenmp'],
     ext_modules = cythonize(extensions),
 )
     
