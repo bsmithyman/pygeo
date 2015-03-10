@@ -27,10 +27,8 @@ rlpad = 4
 
 if (rlpad == 8):
   rlpak = 'Q'
-elif (rlpad == 4):
-  rlpak = 'I'
 else:
-  raise FIOUnrecognizedRecordLength
+  rlpak = 'I'
 
 # ----------------------------------------------------------------------
 def readfast (filename, dims=None):
