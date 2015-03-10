@@ -34,7 +34,7 @@ def chequerboard (dims, tilesize=1, tilemin=0, tilemax=1):
     tilesize = tuple([tilesize for item in xrange(len(dims))])
 
   if (len(dims) != len(tilesize)):
-    raise DimensionError
+    raise Exception()
 
   bd = _blockdims(dims, tilesize)
 
