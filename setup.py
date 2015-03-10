@@ -72,7 +72,6 @@ setup(
     install_requires = ['numpy',
                         'scipy',
                         'Cython',
-                        'pyopencl',
                         ],
     author = 'Brendan Smithyman',
     author_email = 'brendan@bitsmithy.net',
