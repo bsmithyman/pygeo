@@ -166,3 +166,50 @@ def readini (infile):
     settingsdict['zero2'] = [int(item) for item in lsplit]
 
     return settingsdict
+
+def importFrequencyPanels(globfn, sfopts=None):
+
+    import glob
+    import os
+    import re
+    import numpy as np
+    from pygeo.segyread import SEGYFile
+    
+    matcher = re.compile('(?P<projnm>[^\.]+)\.(?P<field>(?:ut|vz|vx)[ifoOesrcbt]+)(?P<freq>[0-9]*\.?[0-9]+).*$')
+    
+    def getGroupDict(fn):
+
+        if sfopts is not None:
+            sf = SEGYFile(fn, **sfopts)
+        else:
+            sf = SEGYFile(fn)
+
+        fnbase = os.path.split(fn)[-1]
+        gd = matcher.match(fnbase).groupdict()
+        gd['data'] = sf[::2] + 1j * sf[1::2]
+        
+        return gd
+    
+    def hierarchicalOrganization(gds):
+        hierDict = {}
+        
+        for gd in gds:
+            
+            projnm = gd['projnm']
+            if projnm not in hierDict:
+                hierDict[projnm] = {}
+            
+            field = gd['field']
+            if field not in hierDict[projnm]:
+                hierDict[projnm][field] = {}
+            
+            freq = gd['freq']
+            hierDict[projnm][field][freq] = gd['data']
+        
+        return hierDict
+
+    files = glob.glob(globfn)
+    
+    results = hierarchicalOrganization(map(getGroupDict, files))
+    
+    return results   
