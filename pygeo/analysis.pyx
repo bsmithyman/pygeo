@@ -53,7 +53,7 @@ def clipsign (value, clip):
   clipthese = abs(value) > clip
   return value * ~clipthese + np.sign(value)*clip*clipthese
 
-def wiggle (traces,skipt=1,scale=1.,lwidth=.1,offsets=None,redvel=0.,tshift=0.,sampr=1.,clip=10.,color='black',fill=True,line=True):
+def wiggle (traces,skipt=1,scale=1.,lwidth=.1,offsets=None,redvel=0.,tshift=0.,sampr=1.,clip=10.,color='black',fill=True,line=True, **kwargs):
 
   ns = traces.shape[1]
   ntr = traces.shape[0]
@@ -70,12 +70,12 @@ def wiggle (traces,skipt=1,scale=1.,lwidth=.1,offsets=None,redvel=0.,tshift=0.,s
     trace[-1] = 0
 
     if (line):
-      plt.plot(i + clipsign(trace / scale, clip), t - shifts[i], color=color, linewidth=lwidth)
+      plt.plot(i + clipsign(trace / scale, clip), t - shifts[i], color=color, linewidth=lwidth, **kwargs)
     if (fill):
       for j in range(ns):
         if (trace[j] < 0):
           trace[j] = 0
-      plt.fill(i + clipsign(trace / scale, clip), t - shifts[i], color=color, linewidth=0)
+      plt.fill(i + clipsign(trace / scale, clip), t - shifts[i], color=color, linewidth=0, **kwargs)
   plt.grid(True)
 
 #def tracenormalize (traces):
