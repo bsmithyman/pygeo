@@ -282,7 +282,7 @@ class SEGYFile (object):
   verbose = False
   majorheadersonly = True
   isSU = False
-  endian = 'Auto'
+  endian = 'Big'
 
   samplen = 4
 
@@ -674,7 +674,7 @@ class SEGYFile (object):
     if (self.usemmap):
       try:
         self._maybePrint('Trying to create memory map...')
-        self._fp = mmap.mmap(fp.fileno(), 0)
+        self._fp = mmap.mmap(fp.fileno(), 0, flags=mmap.MAP_PRIVATE)
         self._maybePrint('Success. Using memory-mapped I/O.\n')
         fp.close()
       except:
