@@ -22,11 +22,10 @@
 # ----------------------------------------------------------------------
 
 import os
-from setuptools import setup
+from setuptools import find_packages, setup
 from setuptools.extension import Extension
-from setuptools import find_packages
+from setuptools.command.build_ext import build_ext
 from Cython.Build import cythonize
-import numpy
 
 CLASSIFIERS = [
 'Development Status :: 4 - Beta',
@@ -64,13 +63,20 @@ extensions = [
     Extension(genName('segyread'),  genPath(['segyread.pyx', 'fpconvert.c'])),
     Extension(genName('testing'),   genPath(['testing.py'])),
 ]
-    
+
+class NumpyBuild(build_ext):
+    def finalize_options(self):
+        build_ext.finalize_options(self)
+        __builtins__.__NUMPY_SETUP__ = False
+        import numpy
+        self.include_dirs.append(numpy.get_include())
+
 setup(
     name = NAME,
-    version = '0.1',
+    version = '0.1.0',
     packages = find_packages(),
-    install_requires = ['numpy',
-                        'scipy',
+    install_requires = ['numpy>=1.7',
+                        'scipy>=0.13',
                         'Cython',
                         ],
     author = 'Brendan Smithyman',
@@ -83,9 +89,10 @@ setup(
     classifiers = CLASSIFIERS,
     platforms = ['Linux', 'Solaris', 'Mac OS-X', 'Unix'],
     use_2to3 = False,
-    include_dirs = [numpy.get_include()],
+    cmdclass={'build_ext': NumpyBuild},
+    setup_requires=['numpy'],
     extra_compile_args=['-w','-fopenmp'],
     extra_link_args=['-fopenmp'],
     ext_modules = cythonize(extensions),
 )
-    
+
