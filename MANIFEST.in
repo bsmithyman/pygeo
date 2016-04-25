@@ -1,3 +1,9 @@
 include README.md
 include LICENSE-GPL.txt
 include LICENSE-LGPL.txt
+recursive-include pygeo/*.pyx
+recursive-include pygeo/*.pyxbld
+recursive-include pygeo/*.h
+recursive-include pygeo/filter.c
+recursive-include pygeo/fpconvert.c
+recursive-include pygeo/clfiles *
